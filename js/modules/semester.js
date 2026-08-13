@@ -186,32 +186,146 @@ const semesterModule = {
     app.showToast(`영상 강의 [${title}] (${purpose})가 성공적으로 등록되었습니다!`, 'success');
   },
 
+  deleteClass(id) {
+    this.timetable = this.timetable.filter(c => c.id !== id);
+    this.renderTimetable();
+    this.renderDashboardSchedule();
+    app.showToast('수업 일정이 시간표에서 삭제되었습니다.', 'info');
+  },
+
   renderTimetable() {
     const container = document.getElementById('timetableGrid');
     if (!container) return;
 
-    // Calculate gap for Monday (월요일: 12:00 ~ 13:00 -> 1시간 공강)
-    container.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:0.75rem;">
-        <div class="alert-banner success" style="margin-bottom:0.5rem; padding:0.6rem 0.9rem; font-size:0.85rem;">
-          <i data-lucide="clock" style="width:16px;"></i>
-          <strong>[월요일 공강 안내]</strong> 12:00 ~ 13:00 (총 1시간 공강) - 시작 5분전 알림 설정 완료
-        </div>
+    const days = ['월', '화', '수', '목', '금', '토'];
 
-        ${this.timetable.map(c => `
-          <div class="activity-card" style="border-left: 4px solid var(--primary);">
-            <div class="activity-main">
-              <div class="title">${c.name} (${c.day}요일 ${c.startTime} ~ ${c.endTime})</div>
-              <div class="summary">강의실: ${c.room} | 담당: ${c.professor}</div>
-              <div class="activity-meta">
-                <span class="badge badge-accent">수업 1시간전 알림 설정</span>
-                ${c.startTime === '13:00' ? '<span class="badge badge-warning">연강 (5분전 알림)</span>' : ''}
-              </div>
-            </div>
-          </div>
-        `).join('')}
+    // Generate 30-min time slots from 09:00 to 18:00
+    const timeSlots = [];
+    for (let h = 9; h < 18; h++) {
+      const hourStr = h < 10 ? '0' + h : '' + h;
+      timeSlots.push(`${hourStr}:00`);
+      timeSlots.push(`${hourStr}:30`);
+    }
+
+    // Color palette mapping
+    const palette = [
+      { bg: 'rgba(239, 68, 68, 0.22)', border: '#EF4444', text: '#FCA5A5' },
+      { bg: 'rgba(16, 185, 129, 0.22)', border: '#10B981', text: '#6EE7B7' },
+      { bg: 'rgba(59, 130, 246, 0.22)', border: '#3B82F6', text: '#93C5FD' },
+      { bg: 'rgba(168, 85, 247, 0.22)', border: '#A855F7', text: '#E9D5FF' },
+      { bg: 'rgba(245, 158, 11, 0.22)', border: '#F59E0B', text: '#FDE68A' },
+      { bg: 'rgba(236, 72, 153, 0.22)', border: '#EC4899', text: '#FBCFE8' },
+      { bg: 'rgba(20, 184, 166, 0.22)', border: '#14B8A6', text: '#99F6E4' }
+    ];
+
+    const courseColorMap = {};
+    let colorIdx = 0;
+    this.timetable.forEach(c => {
+      if (!courseColorMap[c.name]) {
+        courseColorMap[c.name] = palette[colorIdx % palette.length];
+        colorIdx++;
+      }
+    });
+
+    // Helper: convert HH:MM to minutes from 00:00
+    const toMinutes = (t) => {
+      const parts = t.split(':');
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    };
+
+    // Track occupied cells: occupied[day][slotIdx] = true/false
+    const occupied = {};
+    days.forEach(d => {
+      occupied[d] = new Array(timeSlots.length).fill(false);
+    });
+
+    // Build matrix HTML
+    let tableHtml = `
+      <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+        <div class="alert-banner success" style="margin:0; padding:0.5rem 0.8rem; font-size:0.8rem; flex:1;">
+          <i data-lucide="clock" style="width:15px;"></i>
+          <strong>[월요일 공강 안내]</strong> 12:00 ~ 13:00 (1시간 공강) - 시작 5분전 알림 설정 완료
+        </div>
+      </div>
+
+      <div class="table-container" style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-height:550px;">
+        <table class="custom-table visual-timetable-table" style="width:100%; border-collapse:collapse; text-align:center; font-size:0.75rem;">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.08); border-bottom:2px solid var(--border-color);">
+              <th style="width:80px; padding:0.6rem; text-align:center;">시간</th>
+              ${days.map(d => `<th style="padding:0.6rem; text-align:center;">${d}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    timeSlots.forEach((slot, slotIdx) => {
+      const slotMin = toMinutes(slot);
+      const nextSlotMin = slotMin + 30;
+      const endStr = `${Math.floor(nextSlotMin/60).toString().padStart(2,'0')}:${(nextSlotMin%60).toString().padStart(2,'0')}`;
+
+      tableHtml += `<tr style="border-bottom:1px solid rgba(255,255,255,0.05); height:32px;">`;
+      tableHtml += `<td style="font-weight:700; font-size:0.7rem; color:var(--text-muted); background:rgba(0,0,0,0.2); border-right:1px solid var(--border-color); padding:0.2rem 0.4rem;">${slot}-${endStr}</td>`;
+
+      days.forEach(day => {
+        if (occupied[day][slotIdx]) {
+          // Cell is covered by a rowspan from an earlier start slot
+          return;
+        }
+
+        // Find if a class starts at this exact slot
+        const matchingClass = this.timetable.find(c => {
+          if (c.day !== day) return false;
+          const startM = toMinutes(c.startTime);
+          return startM === slotMin;
+        });
+
+        if (matchingClass) {
+          const startM = toMinutes(matchingClass.startTime);
+          const endM = toMinutes(matchingClass.endTime);
+          const durationSlots = Math.max(1, Math.round((endM - startM) / 30));
+
+          // Mark subsequent slots as occupied
+          for (let i = 0; i < durationSlots; i++) {
+            if (slotIdx + i < timeSlots.length) {
+              occupied[day][slotIdx + i] = true;
+            }
+          }
+
+          const style = courseColorMap[matchingClass.name] || palette[0];
+          tableHtml += `
+            <td rowspan="${durationSlots}" style="background:${style.bg}; border-left:4px solid ${style.border}; color:${style.text}; padding:0.4rem 0.3rem; vertical-align:middle; border-radius:var(--radius-xs); border-bottom:1px solid ${style.border};">
+              <div style="font-weight:800; font-size:0.82rem; line-height:1.2;">${matchingClass.name}</div>
+              <div style="font-size:0.72rem; margin-top:0.2rem; opacity:0.9;">${matchingClass.professor}</div>
+              <div style="font-size:0.68rem; opacity:0.8;">(${matchingClass.room})</div>
+              <button onclick="semesterModule.deleteClass('${matchingClass.id}')" style="background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.68rem; margin-top:0.3rem; opacity:0.8;" title="수업 삭제">&times; 삭제</button>
+            </td>
+          `;
+        } else {
+          // Check if covered by any ongoing class that didn't start exactly at slotMin
+          const isCovered = this.timetable.some(c => {
+            if (c.day !== day) return false;
+            const startM = toMinutes(c.startTime);
+            const endM = toMinutes(c.endTime);
+            return slotMin >= startM && slotMin < endM;
+          });
+
+          if (!isCovered) {
+            tableHtml += `<td style="border-right:1px solid rgba(255,255,255,0.03);"></td>`;
+          }
+        }
+      });
+
+      tableHtml += `</tr>`;
+    });
+
+    tableHtml += `
+          </tbody>
+        </table>
       </div>
     `;
+
+    container.innerHTML = tableHtml;
     if (window.lucide) lucide.createIcons();
   },
 
