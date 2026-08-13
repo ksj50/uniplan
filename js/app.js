@@ -258,7 +258,6 @@ const app = {
 
     if (viewId === 'studymode' && window.studyModeModule) {
       setTimeout(() => {
-        studyModeModule.init3DPanorama();
         studyModeModule.initFlightMap();
       }, 250);
     }

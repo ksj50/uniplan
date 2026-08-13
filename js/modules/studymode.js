@@ -282,6 +282,51 @@ const studyModeModule = {
 
     const routeData = this.routes[this.currentRouteKey] || this.routes.icn_cdg;
 
+    // Update Ticket Boarding Pass Text
+    const origCodeEl = document.getElementById('ticketOriginCode');
+    const origNameEl = document.getElementById('ticketOriginName');
+    const destCodeEl = document.getElementById('ticketDestCode');
+    const destNameEl = document.getElementById('ticketDestName');
+    const flightTimeEl = document.getElementById('ticketFlightTime');
+
+    if (this.currentRouteKey === 'icn_cdg') {
+      if (origCodeEl) origCodeEl.innerText = 'ICN';
+      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
+      if (destCodeEl) destCodeEl.innerText = 'CDG';
+      if (destNameEl) destNameEl.innerText = 'Paris (Charles de Gaulle)';
+      if (flightTimeEl) flightTimeEl.innerText = '8h 45m Flight';
+    } else if (this.currentRouteKey === 'icn_nrt') {
+      if (origCodeEl) origCodeEl.innerText = 'ICN';
+      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
+      if (destCodeEl) destCodeEl.innerText = 'NRT';
+      if (destNameEl) destNameEl.innerText = 'Tokyo (Narita)';
+      if (flightTimeEl) flightTimeEl.innerText = '2h 15m Flight';
+    } else if (this.currentRouteKey === 'icn_jfk') {
+      if (origCodeEl) origCodeEl.innerText = 'ICN';
+      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
+      if (destCodeEl) destCodeEl.innerText = 'JFK';
+      if (destNameEl) destNameEl.innerText = 'New York (John F. Kennedy)';
+      if (flightTimeEl) flightTimeEl.innerText = '14h 20m Flight';
+    } else if (this.currentRouteKey === 'icn_lhr') {
+      if (origCodeEl) origCodeEl.innerText = 'ICN';
+      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
+      if (destCodeEl) destCodeEl.innerText = 'LHR';
+      if (destNameEl) destNameEl.innerText = 'London (Heathrow)';
+      if (flightTimeEl) flightTimeEl.innerText = '11h 30m Flight';
+    }
+
+    // Sync Passenger Name from User Profile
+    const passNameEl = document.getElementById('ticketPassengerName');
+    if (passNameEl) {
+      const saved = localStorage.getItem('uniplan_user_profile');
+      if (saved) {
+        try {
+          const p = JSON.parse(saved);
+          if (p.name) passNameEl.innerText = `${p.name} 학생`;
+        } catch (e) {}
+      }
+    }
+
     // Clear old lines/markers
     if (this.flightPathPolyline) this.flightMap.removeLayer(this.flightPathPolyline);
     if (this.airplaneMarker) this.flightMap.removeLayer(this.airplaneMarker);
