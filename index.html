@@ -18,12 +18,12 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
   <!-- jsPDF & html2canvas (Image to PDF) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Three.js (360 Degree 3D Panorama Skybox) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="css/style.css">
@@ -886,8 +886,8 @@
         <section id="view-studymode" class="view-section">
           <div class="section-banner glass-card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));">
             <div class="banner-content">
-              <h2><i data-lucide="plane"></i> ✈️ 비행기 기내 공부 모드 & 뽀모도로 타이머</h2>
-              <p>비행기 창밖의 스쳐지나가는 구름 풍경, 은은한 기내 엔진 백색소음, 실시간 항로 지도와 함께 몰입감을 극대화하여 공부하세요.</p>
+              <h2><i data-lucide="plane"></i> ✈️ 비행기 기내 360° 공부 모드 & 뽀모도로 타이머</h2>
+              <p>마우스/터치 드래그로 360도 자유 회전하는 3D 기내 스카이 뷰, 기내 엔진 백색소음, 실시간 위성 항공 항로 추적 지도와 함께 공부하세요.</p>
             </div>
             <div class="banner-actions">
               <button class="btn btn-secondary" onclick="studyModeModule.setTimerMode(25, 5)"><i data-lucide="clock"></i> 25분/5분 뽀모도로</button>
@@ -896,8 +896,8 @@
           </div>
 
           <div class="grid-2col">
-            <!-- Left: Airplane Cabin Window & Pomodoro Controls -->
-            <div class="glass-card" style="text-align:center;">
+            <!-- Left: 360 Rotatable 3D Flight View & Pomodoro Controls -->
+            <div class="glass-card" style="text-align:center; position:relative;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
                 <div style="display:flex; align-items:center; gap:0.5rem;">
                   <label class="form-label" style="margin:0; font-weight:700;">공부 과목:</label>
@@ -915,15 +915,13 @@
                 </div>
               </div>
 
-              <!-- Animated Airplane Window Frame -->
-              <div class="airplane-window-frame">
-                <div class="window-glass">
-                  <div class="cloud-layer"></div>
-                  <div class="cloud-layer-2"></div>
-                  <div class="window-reflection"></div>
-                  <div class="flight-telemetry-badge">
-                    ✈️ 순항 중 (FL360) | <span id="telemetrySpeed">880 km/h</span>
-                  </div>
+              <!-- 360 Degree Rotatable 3D Canvas Container -->
+              <div id="panorama360Container" style="position:relative; width:100%; height:320px; border-radius:var(--radius-md); overflow:hidden; border:2px solid rgba(255,255,255,0.15); box-shadow:0 10px 30px rgba(0,0,0,0.5); cursor:grab;">
+                <div style="position:absolute; top:12px; left:12px; z-index:12; background:rgba(15,23,42,0.85); backdrop-filter:blur(6px); border:1px solid rgba(255,255,255,0.2); padding:4px 10px; border-radius:20px; font-size:0.75rem; color:#F59E0B; font-weight:700;">
+                  <i data-lucide="rotate-cw"></i> 🖱️/📱 마우스/터치 드래그 360° 회전 뷰
+                </div>
+                <div class="flight-telemetry-badge" style="bottom:12px;">
+                  ✈️ 순항 중 (FL360) | <span id="telemetrySpeed">880 km/h</span>
                 </div>
               </div>
 
@@ -946,14 +944,24 @@
               </div>
             </div>
 
-            <!-- Right: Real-time Flight Route Tracking Map & Study Logs -->
+            <!-- Right: Real-time Satellite Flight Route Tracking Map & Study Logs -->
             <div class="right-stack">
               <div class="glass-card">
-                <div class="card-header">
-                  <h3><i data-lucide="map-pin"></i> 비행기 실시간 항로 지도 (ICN ✈️ CDG)</h3>
-                  <span class="badge badge-primary">실시간 위성 추적</span>
+                <div class="card-header" style="flex-wrap:wrap; gap:0.5rem;">
+                  <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <h3><i data-lucide="map-pin"></i> 비행기 실시간 위성 항로 지도</h3>
+                  </div>
+                  <select id="flightRouteSelect" class="form-control form-control-sm" style="width:180px;" onchange="studyModeModule.changeRoute(this.value)">
+                    <option value="icn_cdg" selected>인천(ICN) ✈️ 파리(CDG)</option>
+                    <option value="icn_nrt">인천(ICN) ✈️ 도쿄(NRT)</option>
+                    <option value="icn_jfk">인천(ICN) ✈️ 뉴욕(JFK)</option>
+                    <option value="icn_lhr">인천(ICN) ✈️ 런던(LHR)</option>
+                  </select>
                 </div>
-                <div id="flightRouteMap" style="height:220px; width:100%; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-color);"></div>
+
+                <!-- Satellite Route Map Container -->
+                <div id="flightRouteMap" style="height:260px; width:100%; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-color); position:relative; z-index:1;"></div>
+
                 <div style="display:flex; justify-content:space-around; align-items:center; margin-top:0.75rem; font-size:0.78rem; text-align:center;">
                   <div>
                     <div class="text-muted">현재 고도</div>
@@ -965,7 +973,7 @@
                   </div>
                   <div>
                     <div class="text-muted">현재 항로</div>
-                    <strong style="color:var(--success);">인천(ICN) ✈️ 파리(CDG)</strong>
+                    <strong id="routeTitleText" style="color:var(--success);">인천(ICN) ✈️ 파리(CDG)</strong>
                   </div>
                 </div>
               </div>
@@ -1403,13 +1411,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260813_07"></script>
-  <script src="js/modules/semester.js?v=20260813_07"></script>
-  <script src="js/modules/exam.js?v=20260813_07"></script>
-  <script src="js/modules/projects.js?v=20260813_07"></script>
-  <script src="js/modules/admin.js?v=20260813_07"></script>
-  <script src="js/modules/studymode.js?v=20260813_07"></script>
-  <script src="js/app.js?v=20260813_07"></script>
+  <script src="js/modules/graduation.js?v=20260813_08"></script>
+  <script src="js/modules/semester.js?v=20260813_08"></script>
+  <script src="js/modules/exam.js?v=20260813_08"></script>
+  <script src="js/modules/projects.js?v=20260813_08"></script>
+  <script src="js/modules/admin.js?v=20260813_08"></script>
+  <script src="js/modules/studymode.js?v=20260813_08"></script>
+  <script src="js/app.js?v=20260813_08"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

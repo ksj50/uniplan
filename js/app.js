@@ -255,6 +255,13 @@ const app = {
     if (viewId === 'teamproject' && window.projectsModule) {
       setTimeout(() => projectsModule.initMapIfNeeded(), 300);
     }
+
+    if (viewId === 'studymode' && window.studyModeModule) {
+      setTimeout(() => {
+        studyModeModule.init3DPanorama();
+        studyModeModule.initFlightMap();
+      }, 250);
+    }
   },
 
   setupThemeToggle() {
