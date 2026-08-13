@@ -30,6 +30,9 @@
 </head>
 <body class="dark-theme">
   <div id="app" class="app-layout">
+    <!-- Mobile Sidebar Backdrop Overlay -->
+    <div id="sidebarOverlay" class="sidebar-overlay hidden" onclick="app.toggleMobileNav()"></div>
+
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -113,8 +116,13 @@
       <!-- Top Navbar -->
       <header class="top-header">
         <div class="header-left">
-          <h1 id="pageTitle" class="page-title">통합 대시보드</h1>
-          <p id="pageSubtitle" class="page-subtitle">오늘의 주요 수업 일정, 과제 마감, 시험 D-Day 및 알림 현황</p>
+          <button id="mobileNavToggle" class="mobile-nav-toggle-btn" onclick="app.toggleMobileNav()">
+            <i data-lucide="menu"></i>
+          </button>
+          <div>
+            <h1 id="pageTitle" class="page-title">통합 대시보드</h1>
+            <p id="pageSubtitle" class="page-subtitle">오늘의 주요 수업 일정, 과제 마감, 시험 D-Day 및 알림 현황</p>
+          </div>
         </div>
 
         <div class="header-right">

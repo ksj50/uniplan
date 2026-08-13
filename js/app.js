@@ -25,6 +25,13 @@ const app = {
     console.log('UniPlan Application Initialized Successfully.');
   },
 
+  toggleMobileNav() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('hidden');
+  },
+
   setupNavigation() {
     const navBtns = document.querySelectorAll('.nav-btn');
     navBtns.forEach(btn => {
@@ -36,6 +43,12 @@ const app = {
   },
 
   navigateTo(viewId) {
+    // Close mobile drawer on item selection
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    if (sidebar) sidebar.classList.remove('open');
+    if (overlay) overlay.classList.add('hidden');
+
     // Update active nav button
     document.querySelectorAll('.nav-btn').forEach(btn => {
       btn.classList.toggle('active', btn.getAttribute('data-view') === viewId);
