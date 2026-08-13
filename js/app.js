@@ -257,9 +257,14 @@ const app = {
     }
 
     if (viewId === 'studymode' && window.studyModeModule) {
-      setTimeout(() => {
-        studyModeModule.initFlightMap();
-      }, 250);
+      studyModeModule.initFlightMap();
+      [50, 200, 400, 800, 1500].forEach(delay => {
+        setTimeout(() => {
+          if (studyModeModule.flightMap) {
+            studyModeModule.flightMap.invalidateSize();
+          }
+        }, delay);
+      });
     }
   },
 

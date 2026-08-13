@@ -132,6 +132,7 @@ const studyModeModule = {
     this.renderStudyLogs();
     this.setupListeners();
     this.updateTimerDisplay();
+    this.setupMapObserver();
   },
 
   setupListeners() {
@@ -143,31 +144,61 @@ const studyModeModule = {
     }
   },
 
+  setupMapObserver() {
+    const container = document.getElementById('flightRouteMap');
+    if (!container || this.observerInitialized) return;
+    this.observerInitialized = true;
+
+    if (window.IntersectionObserver) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            this.initFlightMap();
+          }
+        });
+      }, { threshold: 0.05 });
+      observer.observe(container);
+    }
+  },
+
   // ---------------- REALTIME SATELLITE FLIGHT RADAR MAP ----------------
   initFlightMap() {
     const container = document.getElementById('flightRouteMap');
     if (!container) return;
 
     if (this.flightMap) {
-      setTimeout(() => {
-        this.flightMap.invalidateSize();
-      }, 200);
+      [50, 200, 500, 1000].forEach(delay => {
+        setTimeout(() => {
+          if (this.flightMap) this.flightMap.invalidateSize();
+        }, delay);
+      });
       return;
     }
 
-    // FlightAware Radar Dark Tile Map
+    // FlightAware Radar Tile Map with Esri World Satellite / Dark theme
     this.flightMap = L.map('flightRouteMap', { zoomControl: true }).setView([45.0, 50.0], 2);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    // Primary Esri World Imagery Satellite Tile Layer
+    const esriTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 18,
-      attribution: '&copy; FlightAware Radar &copy; OpenStreetMap &copy; CARTO'
-    }).addTo(this.flightMap);
+      attribution: '&copy; FlightAware Radar &copy; Esri World Imagery'
+    });
+
+    // Fallback CartoDB Dark / OSM Tile Layer
+    const darkTile = L.tileLayer('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '&copy; FlightAware Radar &copy; CARTO &copy; OpenStreetMap'
+    });
+
+    esriTile.addTo(this.flightMap);
 
     this.drawRoute();
 
-    setTimeout(() => {
-      if (this.flightMap) this.flightMap.invalidateSize();
-    }, 300);
+    [100, 300, 600, 1200].forEach(delay => {
+      setTimeout(() => {
+        if (this.flightMap) this.flightMap.invalidateSize();
+      }, delay);
+    });
   },
 
   changeRoute(routeKey) {
