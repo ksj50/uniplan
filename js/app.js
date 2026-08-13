@@ -13,6 +13,7 @@ const app = {
     this.setupThemeToggle();
     this.setupNotificationCenter();
     this.setupEventListeners();
+    this.requestNotificationPermission();
 
     // Initialize all modules
     if (window.graduationModule) graduationModule.init();
@@ -23,6 +24,28 @@ const app = {
 
     this.renderNotifications();
     console.log('UniPlan Application Initialized Successfully.');
+  },
+
+  requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+      setTimeout(() => {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            this.showToast('휴대폰 푸시 알림 권한이 허용되었습니다! (수업, 과제, 시험 알림 수신)', 'success');
+          }
+        });
+      }, 2000);
+    }
+  },
+
+  sendNativeNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, { body: body });
+      } catch (e) {
+        console.log('Native notification error:', e);
+      }
+    }
   },
 
   toggleMobileNav() {
