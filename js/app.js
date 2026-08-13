@@ -337,7 +337,17 @@ const app = {
 
   openModal(id) {
     const modal = document.getElementById(id);
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+      modal.classList.remove('hidden');
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (id === 'addAssignmentModal') {
+        const dateInput = document.getElementById('newAssignDate');
+        if (dateInput && !dateInput.value) dateInput.value = todayStr;
+      } else if (id === 'addExamModal') {
+        const dateInput = document.getElementById('newExamDate');
+        if (dateInput && !dateInput.value) dateInput.value = todayStr;
+      }
+    }
   },
 
   closeModal(id) {

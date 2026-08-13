@@ -67,9 +67,20 @@ const examModule = {
     if (noteBtn) noteBtn.onclick = () => app.openModal('addNoteModal');
   },
 
+  handleExamTimeSelect(val) {
+    const customInput = document.getElementById('newExamTimeCustom');
+    if (val === 'custom') {
+      if (customInput) customInput.classList.remove('hidden');
+    } else {
+      if (customInput) customInput.classList.add('hidden');
+    }
+  },
+
   saveNewExam() {
     const subject = document.getElementById('newExamSubject').value.trim();
-    const timeVal = document.getElementById('newExamTime').value;
+    const dateVal = document.getElementById('newExamDate').value;
+    const timeSelect = document.getElementById('newExamTimeSelect').value;
+    const timeCustom = document.getElementById('newExamTimeCustom').value;
     const status = document.getElementById('newExamStatus').value;
 
     if (!subject) {
@@ -77,13 +88,16 @@ const examModule = {
       return;
     }
 
-    const timeStr = timeVal ? timeVal.replace('T', ' ') : '2026-08-20 09:00';
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = dateVal || todayStr;
+    const timeStr = timeSelect === 'custom' ? (timeCustom || '09:00') : timeSelect;
+    const examDate = `${dateStr} ${timeStr}`;
 
     this.subjects.push({
       id: 'sub' + Date.now(),
       name: subject,
       type: status,
-      examDate: timeStr,
+      examDate: examDate,
       examDurationMinutes: 120,
       scope: '전체 범위 요약',
       isExamActive: false,
@@ -96,7 +110,7 @@ const examModule = {
     this.renderSubjectList();
     this.populateSubjectSelect();
     app.closeModal('addExamModal');
-    app.showToast(`시험 일정 [${subject}] (${status})가 성공적으로 등록되었습니다!`, 'success');
+    app.showToast(`시험 일정 [${subject}] (${examDate} ${status})가 성공적으로 등록되었습니다!`, 'success');
   },
 
   saveNewNote() {

@@ -137,17 +137,31 @@ const semesterModule = {
     app.showToast(`[${name}] 주 ${addedCount}회 반복 수업 일정 및 강의실이 성공적으로 등록되었습니다!`, 'success');
   },
 
+  handleAssignTimeSelect(val) {
+    const customInput = document.getElementById('newAssignTimeCustom');
+    if (val === 'custom') {
+      if (customInput) customInput.classList.remove('hidden');
+    } else {
+      if (customInput) customInput.classList.add('hidden');
+    }
+  },
+
   saveNewAssignment() {
     const subject = document.getElementById('newAssignSubject').value.trim() || '일반 과목';
     const title = document.getElementById('newAssignTitle').value.trim();
-    const deadlineVal = document.getElementById('newAssignDeadline').value;
+    const dateVal = document.getElementById('newAssignDate').value;
+    const timeSelect = document.getElementById('newAssignTimeSelect').value;
+    const timeCustom = document.getElementById('newAssignTimeCustom').value;
 
     if (!title) {
       app.showToast('과제 제목을 입력해 주세요!', 'warning');
       return;
     }
 
-    const deadline = deadlineVal ? deadlineVal.replace('T', ' ') : '2026-08-20 23:59';
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dateStr = dateVal || todayStr;
+    const timeStr = timeSelect === 'custom' ? (timeCustom || '23:59') : timeSelect;
+    const deadline = `${dateStr} ${timeStr}`;
 
     this.assignments.push({
       id: 'a' + Date.now(),
@@ -160,7 +174,7 @@ const semesterModule = {
 
     this.renderAssignments();
     app.closeModal('addAssignmentModal');
-    app.showToast(`과제 [${title}] 마감 알림(24h/12h/6h/1h)이 세팅되었습니다!`, 'success');
+    app.showToast(`과제 [${title}] (마감: ${deadline}) 24h/12h/6h/1h 알림이 등록되었습니다!`, 'success');
   },
 
   saveNewVideo() {

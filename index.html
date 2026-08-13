@@ -1094,9 +1094,26 @@
           <label class="form-label">과제 제목 및 상세 설명</label>
           <input type="text" id="newAssignTitle" class="form-control" placeholder="예: 과제 3 - Graph DFS/BFS 구현 및 보고서">
         </div>
-        <div class="input-group">
-          <label class="form-label">마감 일시 (24h/12h/6h/1h 자동 알림)</label>
-          <input type="datetime-local" id="newAssignDeadline" class="form-control">
+        
+        <div class="grid-2col" style="gap:0.75rem;">
+          <div class="input-group">
+            <label class="form-label" style="font-weight:700;">마감 날짜 (달력 선택)</label>
+            <input type="date" id="newAssignDate" class="form-control">
+          </div>
+          <div class="input-group">
+            <label class="form-label" style="font-weight:700;">마감 시간</label>
+            <div style="display:flex; gap:0.4rem;">
+              <select id="newAssignTimeSelect" class="form-control" onchange="semesterModule.handleAssignTimeSelect(this.value)">
+                <option value="23:59">23:59 (자정 전)</option>
+                <option value="18:00">18:00 (오후 6시)</option>
+                <option value="12:00">12:00 (정오)</option>
+                <option value="09:00">09:00 (오전 9시)</option>
+                <option value="15:00">15:00 (오후 3시)</option>
+                <option value="custom">시간 직접 입력...</option>
+              </select>
+              <input type="time" id="newAssignTimeCustom" class="form-control hidden" value="23:59">
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -1151,10 +1168,28 @@
           <label class="form-label">시험 과목명</label>
           <input type="text" id="newExamSubject" class="form-control" placeholder="예: 데이터베이스 중간고사">
         </div>
-        <div class="input-group">
-          <label class="form-label">시험 일시</label>
-          <input type="datetime-local" id="newExamTime" class="form-control">
+
+        <div class="grid-2col" style="gap:0.75rem;">
+          <div class="input-group">
+            <label class="form-label" style="font-weight:700;">시험 날짜 (달력 선택)</label>
+            <input type="date" id="newExamDate" class="form-control">
+          </div>
+          <div class="input-group">
+            <label class="form-label" style="font-weight:700;">시험 시작 시간</label>
+            <div style="display:flex; gap:0.4rem;">
+              <select id="newExamTimeSelect" class="form-control" onchange="examModule.handleExamTimeSelect(this.value)">
+                <option value="09:00">09:00 (오전 9시)</option>
+                <option value="10:00">10:00 (오전 10시)</option>
+                <option value="13:00">13:00 (오후 1시)</option>
+                <option value="14:00">14:00 (오후 2시)</option>
+                <option value="15:00">15:00 (오후 3시)</option>
+                <option value="custom">시간 직접 입력...</option>
+              </select>
+              <input type="time" id="newExamTimeCustom" class="form-control hidden" value="09:00">
+            </div>
+          </div>
         </div>
+
         <div class="input-group">
           <label class="form-label">일정 상태</label>
           <select id="newExamStatus" class="form-control">
