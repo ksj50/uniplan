@@ -67,6 +67,8 @@ const semesterModule = {
           <option value="수" ${row.day === '수' ? 'selected' : ''}>수요일</option>
           <option value="목" ${row.day === '목' ? 'selected' : ''}>목요일</option>
           <option value="금" ${row.day === '금' ? 'selected' : ''}>금요일</option>
+          <option value="토" ${row.day === '토' ? 'selected' : ''}>토요일</option>
+          <option value="일" ${row.day === '일' ? 'selected' : ''}>일요일</option>
         </select>
         <input type="time" class="form-control form-control-sm row-start" value="${row.startTime}" style="width:95px;">
         <span style="font-size:0.8rem;">~</span>
@@ -197,7 +199,7 @@ const semesterModule = {
     const container = document.getElementById('timetableGrid');
     if (!container) return;
 
-    const days = ['월', '화', '수', '목', '금', '토'];
+    const days = ['월', '화', '수', '목', '금', '토', '일'];
 
     // Generate 30-min time slots from 09:00 to 18:00
     const timeSlots = [];
@@ -239,7 +241,7 @@ const semesterModule = {
       occupied[d] = new Array(timeSlots.length).fill(false);
     });
 
-    // Build matrix HTML
+    // Build matrix HTML with fixed equal column widths
     let tableHtml = `
       <div style="margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center;">
         <div class="alert-banner success" style="margin:0; padding:0.5rem 0.8rem; font-size:0.8rem; flex:1;">
@@ -248,12 +250,12 @@ const semesterModule = {
         </div>
       </div>
 
-      <div class="table-container" style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-height:550px;">
-        <table class="custom-table visual-timetable-table" style="width:100%; border-collapse:collapse; text-align:center; font-size:0.75rem;">
+      <div class="table-container" style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-height:580px;">
+        <table class="custom-table visual-timetable-table" style="width:100%; min-width:700px; table-layout:fixed; border-collapse:collapse; text-align:center; font-size:0.75rem;">
           <thead>
             <tr style="background:rgba(255,255,255,0.08); border-bottom:2px solid var(--border-color);">
-              <th style="width:80px; padding:0.6rem; text-align:center;">시간</th>
-              ${days.map(d => `<th style="padding:0.6rem; text-align:center;">${d}</th>`).join('')}
+              <th style="width:75px; min-width:75px; padding:0.6rem; text-align:center;">시간</th>
+              ${days.map(d => `<th style="width:calc((100% - 75px) / 7); padding:0.6rem; text-align:center; border-left:1px solid var(--border-color);">${d}</th>`).join('')}
             </tr>
           </thead>
           <tbody>
