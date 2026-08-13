@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UniPlan - 대학교 통합 플랜 서비스</title>
+  <meta name="description" content="졸업 요건 관리, 학기중 알림, 시험 D-Day 및 회독 관리, 대외활동 및 팀프로젝트 매칭, 관리자 및 보안 기능을 통합한 스마트 대학 생활 플래너">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Leaflet CSS & JS (Maps) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- jsPDF & html2canvas (Image to PDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+  <div id="app" class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <i data-lucide="graduation-cap" class="logo-icon"></i>
+          <span class="logo-text">UniPlan</span>
+          <span class="logo-badge">v2.5</span>
+        </div>
+      </div>
+
+      <div class="user-profile-widget">
+        <div class="avatar">김대학</div>
+        <div class="user-info">
+          <div class="user-name">김대학 학생</div>
+          <div class="user-dept" id="userUnivProfileBadge">컴퓨터공학과 3학년</div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul>
+          <li>
+            <button class="nav-btn active" data-view="dashboard">
+              <i data-lucide="layout-dashboard"></i>
+              <span>대시보드 메인</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-view="graduation">
+              <i data-lucide="award"></i>
+              <span>1. 졸업 요건 확인</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-view="semester">
+              <i data-lucide="calendar"></i>
+              <span>2. 학기중 알림 & 시간표</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-view="exam">
+              <i data-lucide="timer"></i>
+              <span>3. 시험 기간 & 회독 노트</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-view="extracurricular">
+              <i data-lucide="sparkles"></i>
+              <span>4. 대외 활동 매니저</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-view="teamproject">
+              <i data-lucide="users"></i>
+              <span>5. 교내 팀프로젝트</span>
+            </button>
+          </li>
+          <li>
+            <button class="nav-btn" data-view="admin">
+              <i data-lucide="shield-check"></i>
+              <span>6. 관리자 & 보안 센터</span>
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button id="themeToggleBtn" class="theme-toggle-btn">
+          <i data-lucide="sun" class="sun-icon"></i>
+          <i data-lucide="moon" class="moon-icon"></i>
+          <span class="theme-label">다크 모드</span>
+        </button>
+        <button id="helpInquiryBtn" class="help-btn">
+          <i data-lucide="help-circle"></i>
+          <span>관리자 문의하기</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Top Navbar -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 id="pageTitle" class="page-title">통합 대시보드</h1>
+          <p id="pageSubtitle" class="page-subtitle">오늘의 주요 수업 일정, 과제 마감, 시험 D-Day 및 알림 현황</p>
+        </div>
+
+        <div class="header-right">
+          <!-- Notification Bell & Center -->
+          <div class="notification-wrapper">
+            <button id="notifBellBtn" class="icon-btn" title="알림 센터">
+              <i data-lucide="bell"></i>
+              <span id="notifBadge" class="badge">3</span>
+            </button>
+            <div id="notifDropdown" class="notif-dropdown hidden">
+              <div class="notif-dropdown-header">
+                <h3>알림 센터 (<span id="notifCount">3</span>)</h3>
+                <button id="clearNotifBtn" class="text-sm-btn">모두 읽음</button>
+              </div>
+              <div id="notifList" class="notif-list">
+                <!-- Dynamic notifications injected here -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulation Controls -->
+          <div class="sim-controls">
+            <button id="simClockBtn" class="btn btn-secondary btn-sm">
+              <i data-lucide="clock"></i>
+              <span id="simTimeDisplay">14:40 (오늘)</span>
+            </button>
+            <button id="triggerCheckinBtn" class="btn btn-primary btn-sm">
+              <i data-lucide="check-square"></i>
+              <span>오늘 수업 종료 일지 작성</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container -->
+      <div id="viewContainer" class="view-container">
+
+        <!-- ==================== DASHBOARD MAIN ==================== -->
+        <section id="view-dashboard" class="view-section active">
+          <div class="dashboard-grid">
+            <!-- Graduation Quick Card -->
+            <div class="glass-card grad-summary-card">
+              <div class="card-header">
+                <h3><i data-lucide="award"></i> 졸업 요건 달성 현황</h3>
+                <button class="text-link-btn" onclick="app.navigateTo('graduation')">자세히 보기 &rarr;</button>
+              </div>
+              <div class="grad-progress-wrapper">
+                <div class="radial-progress-box">
+                  <div class="radial-circle">
+                    <span class="radial-val">78%</span>
+                    <small>달성율</small>
+                  </div>
+                </div>
+                <div class="grad-quick-stats">
+                  <div class="stat-item"><span class="label">총 이수 학점</span><span class="val">102 / 130 학점</span></div>
+                  <div class="stat-item"><span class="label">전공 필수</span><span class="val">48 / 54 학점</span></div>
+                  <div class="stat-item"><span class="label">어학 성적</span><span class="val badge-success">TOEIC 850 (충족)</span></div>
+                  <div class="stat-item"><span class="label">졸업 작품</span><span class="val badge-warning">진행 중 (미충족)</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Exam D-Day Widget -->
+            <div class="glass-card exam-dday-card">
+              <div class="card-header">
+                <h3><i data-lucide="timer"></i> 다가오는 시험 D-Day</h3>
+                <button class="text-link-btn" onclick="app.navigateTo('exam')">시험 일정 보기 &rarr;</button>
+              </div>
+              <div id="dashboardExamCountdown" class="exam-countdown-box">
+                <!-- Exam countdown widget injected -->
+              </div>
+            </div>
+
+            <!-- Today's Schedule & Gap Alerts -->
+            <div class="glass-card schedule-widget">
+              <div class="card-header">
+                <h3><i data-lucide="calendar"></i> 오늘의 수업 & 공강 일정</h3>
+                <span class="tag tag-primary">학기중 자동 알림 ON</span>
+              </div>
+              <div id="dashboardScheduleList" class="schedule-timeline">
+                <!-- Schedule items injected -->
+              </div>
+            </div>
+
+            <!-- Pending Video Lectures -->
+            <div class="glass-card video-lectures-widget">
+              <div class="card-header">
+                <h3><i data-lucide="video"></i> 영상 강의 진도 체크 (3일 내 수강 필수)</h3>
+                <span class="tag tag-danger">미시청 1건</span>
+              </div>
+              <div id="dashboardVideoList" class="video-list">
+                <!-- Videos injected -->
+              </div>
+            </div>
+
+            <!-- Team Projects Quick Hub -->
+            <div class="glass-card projects-summary-widget">
+              <div class="card-header">
+                <h3><i data-lucide="users"></i> 참여 중인 팀프로젝트 & 대외활동</h3>
+                <button class="text-link-btn" onclick="app.navigateTo('teamproject')">팀 룸 입장 &rarr;</button>
+              </div>
+              <div id="dashboardTeamList" class="team-quick-list">
+                <!-- Projects list injected -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== 1. GRADUATION REQUIREMENTS ==================== -->
+        <section id="view-graduation" class="view-section">
+          <div class="section-banner glass-card">
+            <div class="banner-content">
+              <h2><i data-lucide="award"></i> 졸업 요건 확인 및 맞춤 플랜</h2>
+              <p>현재 상태를 등록하고 졸업에 필요한 충족/미충족 항목을 확인하세요. AI 추천 졸업 플랜 3종을 생성할 수 있습니다.</p>
+            </div>
+            <div class="banner-actions">
+              <button id="editGradReqBtn" class="btn btn-secondary"><i data-lucide="edit-3"></i> 요건 기준 수정</button>
+              <button id="updateUserStatusBtn" class="btn btn-primary"><i data-lucide="user-check"></i> 내 성적/상태 업데이트</button>
+              <button id="gen3PlansBtn" class="btn btn-gradient"><i data-lucide="sparkles"></i> 3가지 추천 플랜 생성</button>
+            </div>
+          </div>
+
+          <!-- 6-Month Reminder Banner -->
+          <div id="sixMonthAlert" class="alert-banner warning">
+            <i data-lucide="alert-triangle"></i>
+            <div class="alert-text">
+              <strong>[6개월 정기 업데이트 알림]</strong> 이번 학기 성적이 확정되었나요? 최신 성적표 및 이수 학점 정보를 업데이트해 주세요!
+            </div>
+            <button class="btn btn-sm btn-secondary" onclick="graduationModule.dismissAlert()">업데이트 완료</button>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Left: Criteria Breakdown Table & Progress -->
+            <div class="glass-card">
+              <div class="card-header">
+                <h3>충족 / 미충족 요건 리스트</h3>
+                <button id="flagUncertainBtn" class="btn btn-sm btn-outline-warning"><i data-lucide="help-circle"></i> 불확실 항목 재확인 요청</button>
+              </div>
+              <div class="table-container">
+                <table class="custom-table" id="gradRequirementsTable">
+                  <thead>
+                    <tr>
+                      <th>항목</th>
+                      <th>기준 요건</th>
+                      <th>현재 이수 상태</th>
+                      <th>충족 여부</th>
+                      <th>상태 확인</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- Injected by JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Right: Recommended Actions for Unmet Conditions -->
+            <div class="glass-card">
+              <div class="card-header">
+                <h3><i data-lucide="check-circle-2"></i> 미충족 조건 달성을 위한 추천 활동</h3>
+              </div>
+              <div id="unmetRecommendationsList" class="recommendations-list">
+                <!-- Injected by JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Recommended 3 Plans Section -->
+          <div id="recommendedPlansSection" class="plans-container hidden mt-4">
+            <h3 class="section-title"><i data-lucide="compass"></i> 맞춤형 졸업 플랜 3종 추천</h3>
+            <div class="grid-3col" id="recommendedPlansGrid">
+              <!-- Injected by JS -->
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== 2. SEMESTER NOTIFICATIONS ==================== -->
+        <section id="view-semester" class="view-section">
+          <div class="section-banner glass-card">
+            <div class="banner-content">
+              <h2><i data-lucide="calendar"></i> 학기중 알림 & 시간표 / 과제 / 영상강의</h2>
+              <p>수업 전, 연강, 공강, 오늘의 마지막 수업 알림과 과제 마감 알림, 영상 강의 수강 목적 관리를 한번에 진행합니다.</p>
+            </div>
+            <div class="banner-actions">
+              <button id="addClassBtn" class="btn btn-secondary"><i data-lucide="plus"></i> 수업 추가</button>
+              <button id="addAssignmentBtn" class="btn btn-primary"><i data-lucide="file-plus"></i> 과제 추가</button>
+              <button id="addVideoBtn" class="btn btn-accent"><i data-lucide="video-plus"></i> 영상 강의 업로드 등록</button>
+            </div>
+          </div>
+
+          <!-- Alert Triggers Bar -->
+          <div class="alert-sim-bar glass-card">
+            <span class="sim-label"><i data-lucide="bell-ring"></i> 학기중 자동 알림 시뮬레이션:</span>
+            <div class="sim-btn-group">
+              <button class="btn btn-xs btn-outline" onclick="semesterModule.triggerSim('1h_class')">수업 1시간전 알림</button>
+              <button class="btn btn-xs btn-outline" onclick="semesterModule.triggerSim('gaps')">공강 5분전 알림</button>
+              <button class="btn btn-xs btn-outline" onclick="semesterModule.triggerSim('back_to_back')">연강 5분전 알림</button>
+              <button class="btn btn-xs btn-outline" onclick="semesterModule.triggerSim('last_class')">오늘의 마지막 수업 종료 5분전</button>
+              <button class="btn btn-xs btn-outline-danger" onclick="semesterModule.triggerSim('unwatched_video')">3일 미시청 경고 알림</button>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Weekly Timetable View -->
+            <div class="glass-card">
+              <div class="card-header">
+                <h3><i data-lucide="clock"></i> 주간 시간표 & 공강 시간 자동 분석</h3>
+              </div>
+              <div id="timetableGrid" class="timetable-grid">
+                <!-- Timetable rendering -->
+              </div>
+            </div>
+
+            <!-- Right Column: Homework & Video Lectures -->
+            <div class="right-stack">
+              <!-- Homework Assignments -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="file-text"></i> 과제 마감 관리 (24h/12h/6h/1h 알림)</h3>
+                </div>
+                <div id="assignmentList" class="assignment-list">
+                  <!-- Assignments injected -->
+                </div>
+              </div>
+
+              <!-- Video Lecture Progress & Purpose Tracking -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="play-circle"></i> 영상 강의 진도 & 수강 목적 선택</h3>
+                </div>
+                <div id="videoTrackerList" class="video-tracker-list">
+                  <!-- Video tracker injected -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== 3. EXAM PERIOD SERVICE ==================== -->
+        <section id="view-exam" class="view-section">
+          <div class="section-banner glass-card">
+            <div class="banner-content">
+              <h2><i data-lucide="timer"></i> 시험 기간 서비스 (D-Day, N회독, 사진 PDF 변환)</h2>
+              <p>확정 시험 일정 등록, 시험 범위 N회독 체크리스트, 타이머 및 개념 노트 사진을 PDF로 자동 변환 정리하세요.</p>
+            </div>
+            <div class="banner-actions">
+              <button id="addExamBtn" class="btn btn-secondary"><i data-lucide="calendar-plus"></i> 시험 일정 등록/확정</button>
+              <button id="addNoteBtn" class="btn btn-primary"><i data-lucide="file-text"></i> 개념 정리 & 사진 PDF 변환</button>
+            </div>
+          </div>
+
+          <!-- Overall First Exam D-Day Banner -->
+          <div class="exam-hero-banner glass-card">
+            <div class="hero-dday-content">
+              <div class="dday-tag">첫 시험 대상 디데이</div>
+              <div id="firstExamTitle" class="first-exam-title">자료구조 및 알고리즘</div>
+              <div id="firstExamDDay" class="first-exam-dday">D - 3일 14시간 20분 전</div>
+            </div>
+            <div class="exam-status-info">
+              <div class="info-pill"><i data-lucide="bell-off"></i> 시험 진행 중 알림 자동 일시정지</div>
+              <div class="info-pill"><i data-lucide="check-circle"></i> 3일/1일/15시간/3시간/1시간전 자동 알림</div>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Left: Exam List & Countdown Cards -->
+            <div class="glass-card">
+              <div class="card-header">
+                <h3><i data-lucide="book-open"></i> 과목별 시험 일정 & countdown</h3>
+              </div>
+              <div id="examSubjectList" class="exam-subject-list">
+                <!-- Subject Cards Injected -->
+              </div>
+            </div>
+
+            <!-- Right: N-th Review Tracker & Concept Note / Photo to PDF -->
+            <div class="right-stack">
+              <!-- N-th Review Checklist -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="rotate-cw"></i> 과목별 시험 범위 N회독 체크리스트</h3>
+                  <select id="examSubjectSelect" class="form-select-sm" onchange="examModule.renderReviewTopics()">
+                    <!-- Dynamic subject options -->
+                  </select>
+                </div>
+                <div id="reviewTopicList" class="review-topic-list">
+                  <!-- Topics injected -->
+                </div>
+              </div>
+
+              <!-- Concept Notes & Photo to PDF Generator -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="image"></i> 사진 기반 개념 노트 & PDF 자동 합성</h3>
+                </div>
+                <div class="pdf-converter-box">
+                  <div class="input-group">
+                    <label class="form-label">개념 노트 제목</label>
+                    <input type="text" id="pdfNoteTitle" class="form-control" placeholder="예: 운영체제 가상메모리 핵심 요약">
+                  </div>
+                  <div class="input-group">
+                    <label class="form-label">노트 사진 업로드 (여러 장 가능)</label>
+                    <input type="file" id="pdfNotePhotos" class="form-control" accept="image/*" multiple onchange="examModule.handlePhotoPreview(event)">
+                  </div>
+                  <div id="pdfPhotoPreviewGrid" class="photo-preview-grid"></div>
+                  <button id="generatePdfBtn" class="btn btn-accent w-full mt-3" onclick="examModule.generatePdfFromPhotos()">
+                    <i data-lucide="file-down"></i> 업로드 사진 PDF로 합성 및 다운로드
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== 4. EXTRACURRICULAR ACTIVITIES ==================== -->
+        <section id="view-extracurricular" class="view-section">
+          <div class="section-banner glass-card">
+            <div class="banner-content">
+              <h2><i data-lucide="sparkles"></i> 대외 활동 매니저 & AI 정보 정리</h2>
+              <p>공모전, 대회, 서포터즈 등 대외활동 정보를 AI로 자동 요약하고, 마감 임박순/관심도 순으로 정렬하며 팀원 모집 및 4자리 PIN 전용 방을 생성합니다.</p>
+            </div>
+            <div class="banner-actions">
+              <button id="addActivityBtn" class="btn btn-primary" onclick="projectsModule.openAddActivityModal()"><i data-lucide="plus-circle"></i> 대외활동 등록 (AI 파싱)</button>
+            </div>
+          </div>
+
+          <!-- Category Bar & Filters -->
+          <div class="filter-controls-bar glass-card">
+            <div class="category-pills" id="activityCategoryPills">
+              <button class="cat-pill active" data-cat="all" onclick="projectsModule.setCategoryFilter('all')">전체</button>
+              <button class="cat-pill" data-cat="contest_in" onclick="projectsModule.setCategoryFilter('contest_in')">공모전(교내)</button>
+              <button class="cat-pill" data-cat="contest_out" onclick="projectsModule.setCategoryFilter('contest_out')">공모전(교외)</button>
+              <button class="cat-pill" data-cat="competition" onclick="projectsModule.setCategoryFilter('competition')">대회</button>
+              <button class="cat-pill" data-cat="supporters" onclick="projectsModule.setCategoryFilter('supporters')">서포터즈</button>
+              <button class="cat-pill" data-cat="education" onclick="projectsModule.setCategoryFilter('education')">교육</button>
+              <button class="cat-pill" data-cat="volunteer" onclick="projectsModule.setCategoryFilter('volunteer')">봉사</button>
+              <button class="cat-pill" data-cat="parttime" onclick="projectsModule.setCategoryFilter('parttime')">알바</button>
+              <button class="cat-pill" data-cat="etc" onclick="projectsModule.setCategoryFilter('etc')">기타</button>
+            </div>
+
+            <div class="sort-controls">
+              <label class="form-label">정렬 기준:</label>
+              <select id="activitySortSelect" class="form-select-sm" onchange="projectsModule.setSortOrder(this.value)">
+                <option value="deadline">마감 일자 임박 순</option>
+                <option value="interest">관심도 순 (★)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Activity Cards Grid -->
+            <div class="glass-card">
+              <div class="card-header">
+                <h3><i data-lucide="list"></i> 관심 대외활동 목록</h3>
+              </div>
+              <div id="activityCardsContainer" class="activity-cards-container">
+                <!-- Activity cards injected -->
+              </div>
+            </div>
+
+            <!-- Calendar & PIN Room Quick Entrance -->
+            <div class="right-stack">
+              <!-- Calendar View -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="calendar-days"></i> 신청 기간 달력 (시작일 ~ 마감일)</h3>
+                </div>
+                <div id="activityCalendar" class="activity-calendar">
+                  <!-- Simple dynamic interactive calendar -->
+                </div>
+              </div>
+
+              <!-- 4-Digit PIN Access Card -->
+              <div class="glass-card pin-entry-card">
+                <div class="card-header">
+                  <h3><i data-lucide="key"></i> 대외활동 팀 프로젝트 룸 입장 (4자리 PIN)</h3>
+                </div>
+                <div class="pin-input-box">
+                  <p class="text-sm mb-2">방장이 설정한 4자리 숫자를 입력하면 비밀 팀 룸에 접속합니다.</p>
+                  <div class="pin-inputs">
+                    <input type="password" maxlength="1" class="pin-digit" data-idx="0">
+                    <input type="password" maxlength="1" class="pin-digit" data-idx="1">
+                    <input type="password" maxlength="1" class="pin-digit" data-idx="2">
+                    <input type="password" maxlength="1" class="pin-digit" data-idx="3">
+                  </div>
+                  <button id="joinPinRoomBtn" class="btn btn-primary w-full mt-3" onclick="projectsModule.handlePinSubmit()"><i data-lucide="log-in"></i> 팀 룸 접속하기</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== 5. CAMPUS TEAM PROJECT ==================== -->
+        <section id="view-teamproject" class="view-section">
+          <div class="section-banner glass-card">
+            <div class="banner-content">
+              <h2><i data-lucide="users"></i> 교내 팀프로젝트 협업 센터</h2>
+              <p>마감일 달력, 4자리 PIN 입장, 회의 가능 시간 자동 산출, 교내/외부 최적 모임 장소 지도 추천, 1:1/단체 대화, 링크 & 사진 갤러리를 관리하세요.</p>
+            </div>
+            <div class="banner-actions">
+              <button id="createTeamRoomBtn" class="btn btn-primary" onclick="projectsModule.openCreateTeamModal()"><i data-lucide="folder-plus"></i> 새 팀프로젝트 룸 생성</button>
+            </div>
+          </div>
+
+          <!-- Active Team Project Room Hub -->
+          <div class="team-room-wrapper" id="teamRoomWorkspace">
+            <!-- Room Navigation Bar -->
+            <div class="room-nav-bar glass-card">
+              <div class="room-title-info">
+                <span class="badge badge-accent" id="currentRoomBadge">교내 팀플</span>
+                <h3 id="currentRoomTitle">컴퓨터공학 산학협력 Capstone Project (PIN: 7788)</h3>
+                <span class="room-members-count"><i data-lucide="user"></i> 참여 인원: 4명</span>
+              </div>
+              <div class="room-tabs">
+                <button class="room-tab active" data-tab="overview" onclick="projectsModule.switchRoomTab('overview')"><i data-lucide="layout"></i> 일정 & To-Do</button>
+                <button class="room-tab" data-tab="availability" onclick="projectsModule.switchRoomTab('availability')"><i data-lucide="clock"></i> 회의 가능 시간 조율</button>
+                <button class="room-tab" data-tab="location" onclick="projectsModule.switchRoomTab('location')"><i data-lucide="map-pin"></i> 모임 장소 & 지도 추천</button>
+                <button class="room-tab" data-tab="chat" onclick="projectsModule.switchRoomTab('chat')"><i data-lucide="message-square"></i> 메시지 & 대화방</button>
+                <button class="room-tab" data-tab="links" onclick="projectsModule.switchRoomTab('links')"><i data-lucide="link"></i> 공유 링크 보관함</button>
+                <button class="room-tab" data-tab="gallery" onclick="projectsModule.switchRoomTab('gallery')"><i data-lucide="image"></i> 공유 사진 갤러리</button>
+              </div>
+            </div>
+
+            <!-- Tab Content 1: Overview & To-Do -->
+            <div id="roomTab-overview" class="room-tab-content active">
+              <div class="grid-2col">
+                <div class="glass-card">
+                  <div class="card-header">
+                    <h3><i data-lucide="check-square"></i> 팀 프로젝트 To-Do 리스트</h3>
+                    <button class="btn btn-sm btn-secondary" onclick="projectsModule.addTodo()"><i data-lucide="plus"></i> 할 일 추가</button>
+                  </div>
+                  <div id="teamTodoList" class="team-todo-list">
+                    <!-- Todos injected -->
+                  </div>
+                </div>
+
+                <div class="glass-card">
+                  <div class="card-header">
+                    <h3><i data-lucide="calendar"></i> 프로젝트 주요 마감 달력</h3>
+                  </div>
+                  <div id="teamProjectCalendar" class="team-project-calendar">
+                    <!-- Project deadline calendar -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Content 2: Availability Matrix -->
+            <div id="roomTab-availability" class="room-tab-content">
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="calendar-check"></i> 팀원별 가능한 시간/요일 입력 & 공통 시간 자동 산출</h3>
+                  <button class="btn btn-sm btn-primary" onclick="projectsModule.calculateCommonTime()"><i data-lucide="sparkles"></i> 공통 모임 시간 계산하기</button>
+                </div>
+                <div class="availability-matrix-container">
+                  <p class="text-sm mb-3">각 팀원이 입력한 가능 시간을 결합하여 모두가 만날 수 있는 최적의 모임 시간을 자동으로 계산합니다.</p>
+                  <div id="availabilityGrid" class="availability-grid">
+                    <!-- Interactive Time Grid -->
+                  </div>
+                  <div id="commonTimeResult" class="common-time-result alert-banner success mt-4">
+                    <!-- Calculated common time -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Content 3: Location Recommendation & Interactive Map -->
+            <div id="roomTab-location" class="room-tab-content">
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="navigation"></i> 모임 장소 추천 & 길찾기 지도</h3>
+                  <div class="location-type-toggle">
+                    <button id="locTypeCampus" class="btn btn-sm btn-primary" onclick="projectsModule.setLocationType('campus')">교내 장소 추천</button>
+                    <button id="locTypeExternal" class="btn btn-sm btn-secondary" onclick="projectsModule.setLocationType('external')">외부 중간지점 추천</button>
+                  </div>
+                </div>
+
+                  <div class="location-controls-bar">
+                    <!-- University Selector Bar -->
+                    <div class="university-selection-box mb-3" style="display:flex; align-items:center; gap:0.8rem; flex-wrap:wrap; background:rgba(0,0,0,0.25); padding:0.75rem 1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                      <label class="form-label" style="margin:0; font-weight:700; color:var(--text-main); font-size:0.85rem;"><i data-lucide="graduation-cap"></i> 내 소속 대학교 설정:</label>
+                      <select id="userUniversitySelect" class="form-select-sm" onchange="projectsModule.onUniversityChange(this.value)">
+                        <option value="동국대학교">동국대학교 (서울)</option>
+                        <option value="서울대학교">서울대학교 (관악)</option>
+                        <option value="연세대학교">연세대학교 (신촌)</option>
+                        <option value="고려대학교">고려대학교 (안암)</option>
+                        <option value="한국항공대학교">한국항공대학교 (고양)</option>
+                        <option value="건국대학교">건국대학교 (서울)</option>
+                        <option value="서울과학기술대학교">서울과학기술대학교 (노원)</option>
+                        <option value="홍익대학교">홍익대학교 (마포)</option>
+                        <option value="성균관대학교">성균관대학교 (명륜)</option>
+                        <option value="한양대학교">한양대학교 (서울)</option>
+                        <option value="경희대학교">경희대학교 (서울)</option>
+                        <option value="서강대학교">서강대학교 (마포)</option>
+                        <option value="중앙대학교">중앙대학교 (흑석)</option>
+                        <option value="KAIST">KAIST (대전)</option>
+                        <option value="POSTECH">POSTECH (포항)</option>
+                        <option value="custom">기타 학교 직접 입력...</option>
+                      </select>
+                      <div id="customUnivInputBox" class="hidden" style="display:inline-flex; gap:0.4rem; align-items:center;">
+                        <input type="text" id="customUnivName" class="form-control form-control-sm" placeholder="학교명 입력 (예: 부산대학교)" style="width:170px;">
+                        <button class="btn btn-xs btn-primary" onclick="projectsModule.startCustomUnivVerification()"><i data-lucide="map-pin"></i> 지도에서 위치 확인</button>
+                      </div>
+                      <span id="currentUnivBadge" class="badge badge-accent" style="font-size:0.8rem; padding:0.35rem 0.75rem;"><i data-lucide="map-pin"></i> 동국대학교 캠퍼스 중심</span>
+
+                      <!-- Location Verification Banner -->
+                      <div id="univConfirmBar" class="alert-banner warning hidden" style="margin-top:0.6rem; margin-bottom:0; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; width:100%; padding:0.6rem 0.9rem;">
+                        <span><i data-lucide="map-pin"></i> <strong id="verifyingUnivName">[학교명]</strong> 위치 검증 중: 지도 클릭 또는 마커 드래그로 정확한 위치를 지정하세요!</span>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                          <button class="btn btn-xs btn-secondary" onclick="projectsModule.cancelCustomUnivVerification()">취소</button>
+                          <button class="btn btn-xs btn-primary" style="background:var(--success); border-color:var(--success);" onclick="projectsModule.confirmCustomUnivLocation()"><i data-lucide="check-circle"></i> 이 위치로 최종 저장</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div id="campusLocationSelector" class="location-input-group">
+                      <label class="form-label">교내 선호 장소 선택:</label>
+                      <select id="campusPlaceSelect" class="form-select-sm" onchange="projectsModule.updateCampusPlace()">
+                        <option value="lib_3f">중앙도서관 3층 그룹스터디룸 A</option>
+                        <option value="eng_lounge">공학관 1층 융합 라운지</option>
+                        <option value="student_union">학생회관 2층 카페 Uni</option>
+                        <option value="sci_hub">자연과학관 4층 세미나실 402</option>
+                      </select>
+                    </div>
+
+                    <div id="externalLocationInputs" class="location-input-group hidden">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                        <label class="form-label" style="margin:0; font-weight:700;"><i data-lucide="users"></i> 팀원별 출발지/학교 입력 & 지도 위치 검증:</label>
+                        <button class="btn btn-xs btn-secondary" onclick="projectsModule.addMemberLocInput()"><i data-lucide="user-plus"></i> 팀원 추가 (+1명)</button>
+                      </div>
+
+                      <div id="memberLocInputsContainer" class="member-locations-container" style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:0.75rem;">
+                        <!-- Rendered dynamically by JS -->
+                      </div>
+
+                      <!-- Member Location Verification Banner -->
+                      <div id="memberLocConfirmBar" class="alert-banner warning hidden" style="margin-bottom:0.75rem; font-size:0.85rem; display:flex; align-items:center; justify-content:space-between; padding:0.6rem 0.9rem;">
+                        <span><i data-lucide="map-pin"></i> <strong id="verifyingMemberTitle">[팀원 1]</strong> 지도 위치 검증 중: 지도를 클릭하거나 마커를 드래그하여 지정하세요!</span>
+                        <div style="display:flex; gap:0.4rem; align-items:center;">
+                          <button class="btn btn-xs btn-secondary" onclick="projectsModule.cancelMemberLocVerification()">취소</button>
+                          <button class="btn btn-xs btn-primary" style="background:var(--success); border-color:var(--success);" onclick="projectsModule.confirmMemberLocVerification()"><i data-lucide="check-circle"></i> 이 위치로 출발지 확정</button>
+                        </div>
+                      </div>
+
+                      <button class="btn btn-sm btn-primary w-full" onclick="projectsModule.calcMidpoint()"><i data-lucide="map-pin"></i> 검증된 위치로 최적 중간지점 계산</button>
+                    </div>
+                  </div>
+
+                  <!-- Leaflet Map Container -->
+                  <div class="map-and-recommendations">
+                    <div id="projectMap" class="project-map-container"></div>
+                    <div class="recommend-places-panel">
+                      <h4><i data-lucide="coffee"></i> 추천 카페 & 스터디룸 및 길찾기</h4>
+                      <div id="placeRecommendationsList" class="places-list">
+                        <!-- Places list injected -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Content 4: Messaging & Chat Rooms -->
+            <div id="roomTab-chat" class="room-tab-content">
+              <div class="chat-container glass-card">
+                <div class="chat-sidebar">
+                  <div class="chat-sidebar-header">
+                    <h4>대화 채널 및 1:1 메시지</h4>
+                    <button class="btn btn-xs btn-outline-primary" onclick="projectsModule.createNewChatRoom()"><i data-lucide="plus"></i> 새 방 만들기</button>
+                  </div>
+                  <ul class="chat-room-list" id="chatChannelsList">
+                    <!-- Channels injected -->
+                  </ul>
+                </div>
+
+                <div class="chat-main">
+                  <div class="chat-header">
+                    <h4 id="activeChatRoomTitle"># 전체 그룹 대화방</h4>
+                    <span class="text-xs text-muted">팀원 4명 모두 참여 중</span>
+                  </div>
+                  <div class="chat-messages" id="chatMessagesBox">
+                    <!-- Messages injected -->
+                  </div>
+                  <div class="chat-input-area">
+                    <input type="text" id="chatInput" class="form-control" placeholder="메시지를 입력하세요 (링크 및 사진 공유 가능)..." onkeypress="if(event.key==='Enter') projectsModule.sendChatMessage()">
+                    <button class="btn btn-icon btn-secondary" title="사진 공유" onclick="projectsModule.sharePhotoInChat()"><i data-lucide="image"></i></button>
+                    <button class="btn btn-primary" onclick="projectsModule.sendChatMessage()"><i data-lucide="send"></i> 전송</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Content 5: Shared Link Archive -->
+            <div id="roomTab-links" class="room-tab-content">
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="link-2"></i> 공유된 링크 보관함</h3>
+                  <button class="btn btn-sm btn-secondary" onclick="projectsModule.addSharedLink()"><i data-lucide="plus"></i> 링크 직접 추가</button>
+                </div>
+                <div class="table-container">
+                  <table class="custom-table" id="sharedLinksTable">
+                    <thead>
+                      <tr>
+                        <th>사용자 설정 링크 이름</th>
+                        <th>URL 주소</th>
+                        <th>공유자</th>
+                        <th>공유 일시</th>
+                        <th>관리</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Injected by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab Content 6: Shared Photo Gallery (Module 5 Special Feature) -->
+            <div id="roomTab-gallery" class="room-tab-content">
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="grid"></i> 공유된 사진 전용 갤러리 View</h3>
+                  <button class="btn btn-sm btn-accent" onclick="projectsModule.uploadGalleryPhoto()"><i data-lucide="upload"></i> 사진 업로드</button>
+                </div>
+                <div id="sharedPhotoGalleryGrid" class="photo-gallery-grid">
+                  <!-- Photos grid injected -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== 6. ADMIN & SECURITY ==================== -->
+        <section id="view-admin" class="view-section">
+          <!-- Password Lock Overlay if not authenticated -->
+          <div id="adminAuthOverlay" class="admin-auth-card glass-card">
+            <div class="auth-box">
+              <div class="auth-icon"><i data-lucide="lock"></i></div>
+              <h2>관리자 전용 접근 보호</h2>
+              <p>관리자 비밀번호를 입력해야 현황 확인 및 보안 설정 변경이 가능합니다.</p>
+              <div class="input-group mt-3">
+                <input type="password" id="adminPasswordInput" class="form-control" placeholder="비밀번호 입력 (기본: admin1234)" onkeypress="if(event.key==='Enter') adminModule.login()">
+                <button id="adminLoginBtn" class="btn btn-primary" onclick="adminModule.login()"><i data-lucide="key"></i> 관리자 로그인</button>
+              </div>
+              <p id="adminAuthErr" class="auth-err-msg hidden">비밀번호가 올바르지 않습니다.</p>
+            </div>
+          </div>
+
+          <!-- Authenticated Admin Portal Content -->
+          <div id="adminPortalContent" class="admin-portal-content hidden">
+            <div class="section-banner glass-card">
+              <div class="banner-content">
+                <h2><i data-lucide="shield-check"></i> 최고 관리자 센터 & 보안 제어판</h2>
+                <p>사용자 서비스 이용 현황 통계, 1:1 문의 메세지 관리, 외부 API 보안 및 암호화 설정을 관리합니다.</p>
+              </div>
+              <div class="banner-actions">
+                <button id="adminLogoutBtn" class="btn btn-secondary" onclick="adminModule.logout()"><i data-lucide="log-out"></i> 로그아웃</button>
+                <button id="changeAdminPwdBtn" class="btn btn-outline-warning" onclick="adminModule.changePassword()"><i data-lucide="key"></i> 암호 변경</button>
+              </div>
+            </div>
+
+            <!-- Stats Analytics Grid -->
+            <div class="grid-2col mb-4">
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="bar-chart-3"></i> 서비스별 기능 사용량 현황</h3>
+                </div>
+                <div class="chart-box">
+                  <canvas id="usageStatsChart"></canvas>
+                </div>
+              </div>
+
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="activity"></i> 실시간 사용자 활동 모니터링</h3>
+                </div>
+                <div class="admin-quick-stats">
+                  <div class="stat-box"><span class="num">1,248</span><span class="lbl">총 등록 학생 수</span></div>
+                  <div class="stat-box"><span class="num">384</span><span class="lbl">활성 팀 프로젝트</span></div>
+                  <div class="stat-box"><span class="num">99.8%</span><span class="lbl">알림 발송 성공률</span></div>
+                  <div class="stat-box"><span class="num">12건</span><span class="lbl">미처리 문의 사항</span></div>
+                </div>
+                <div class="chart-box mt-3">
+                  <canvas id="userActivityChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2col">
+              <!-- User Inquiries Management Desk -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="help-circle"></i> 사용자 문의 메시지 접수함</h3>
+                  <span class="badge badge-warning" id="inquiryBadgeCount">3건 대기 중</span>
+                </div>
+                <div id="adminInquiryList" class="admin-inquiry-list">
+                  <!-- Inquiries injected -->
+                </div>
+              </div>
+
+              <!-- Security & API Key Protection Vault -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="shield-alert"></i> API 키 보안 & 외부 노출 방지 암호화 래퍼</h3>
+                </div>
+                <div class="security-vault-box">
+                  <p class="text-sm mb-3">유료 API(OpenAI, 지도 API, 푸시 서비스 등) 키의 외부 유출 방지를 위해 AES-256 클라이언트 암호화 래퍼가 적용되어 있습니다.</p>
+                  
+                  <div class="api-key-item">
+                    <div class="api-info">
+                      <span class="api-name">OpenAI GPT-4o API Key</span>
+                      <span class="api-status badge-success">암호화 적용됨 (AES-GCM)</span>
+                    </div>
+                    <div class="api-key-display">
+                      <input type="password" readonly value="sk-proj-7839218392018392183921" class="form-control form-control-sm api-masked-input">
+                      <button class="btn btn-xs btn-secondary" onclick="adminModule.toggleApiKeyVisibility(this)">확인</button>
+                    </div>
+                  </div>
+
+                  <div class="api-key-item mt-3">
+                    <div class="api-info">
+                      <span class="api-name">Kakao Map / Leaflet Reverse Geo API</span>
+                      <span class="api-status badge-success">암호화 적용됨</span>
+                    </div>
+                    <div class="api-key-display">
+                      <input type="password" readonly value="kmap_sec_89218392183021938" class="form-control form-control-sm api-masked-input">
+                      <button class="btn btn-xs btn-secondary" onclick="adminModule.toggleApiKeyVisibility(this)">확인</button>
+                    </div>
+                  </div>
+
+                  <div class="security-log-box mt-4">
+                    <h4>보안 감사 로그</h4>
+                    <div class="audit-logs" id="auditLogsContainer">
+                      <div class="log-line"><span class="time">[14:38:10]</span> API Vault: 외부 클라이언트 직접 접근 차단됨. (보안 서명 검증 완료)</div>
+                      <div class="log-line"><span class="time">[14:15:22]</span> Admin: 관리자 세션 암호화 토큰 발급 완료.</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==================== GLOBAL MODALS ==================== -->
+  <!-- User Inquiry Modal -->
+  <div id="inquiryModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i data-lucide="help-circle"></i> 관리자에게 문의하기</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('inquiryModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label class="form-label">문의 유형</label>
+          <select id="inquiryCategory" class="form-control">
+            <option value="grad">졸업 요건 관련 문의</option>
+            <option value="alert">학기중/시험 알림 오류</option>
+            <option value="team">팀프로젝트 PIN/방 관련</option>
+            <option value="etc">기타 제안 및 오류 제보</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="form-label">문의 제목</label>
+          <input type="text" id="inquiryTitle" class="form-control" placeholder="제목을 입력하세요">
+        </div>
+        <div class="input-group">
+          <label class="form-label">문의 내용</label>
+          <textarea id="inquiryContent" class="form-control" rows="4" placeholder="상세한 내용을 적어주세요..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('inquiryModal')">취소</button>
+        <button class="btn btn-primary" onclick="app.submitUserInquiry()">문의 전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End of Day Post-Class Check-in Modal -->
+  <div id="dailyCheckinModal" class="modal-backdrop hidden">
+    <div class="modal-box modal-lg">
+      <div class="modal-header">
+        <h3><i data-lucide="check-square"></i> 오늘 수업 종료 후 과제/진도 입력 일지</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('dailyCheckinModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="text-sm mb-3">오늘 마지막 수업 종료 후 10분이 경과하였습니다! 오늘 새로 생긴 과제나 강의 진도를 정리해 보세요.</p>
+        <div class="input-group">
+          <label class="form-label">수업 선택</label>
+          <select id="checkinSubjectSelect" class="form-control">
+            <option value="data_struct">자료구조 및 알고리즘</option>
+            <option value="os">운영체제</option>
+            <option value="web_dev">웹 프론트엔드 실습</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="form-label">새로 생성된 과제 정보 (없으면 비워두세요)</label>
+          <input type="text" id="checkinAssignmentTitle" class="form-control" placeholder="예: 과제 3 - B-Tree 구현 실습 (마감: 다음주 화요일)">
+        </div>
+        <div class="input-group">
+          <label class="form-label">오늘 나간 수업 진도 요약</label>
+          <textarea id="checkinProgressNote" class="form-control" rows="3" placeholder="예: 7장 가상메모리 페이징 기법 설명 완료."></textarea>
+        </div>
+        <div class="input-group">
+          <label class="form-label">신규 올라온 영상 강의 정보 입력</label>
+          <input type="text" id="checkinVideoTitle" class="form-control" placeholder="예: [보충강의] 페이징 알고리즘 예제 풀이 (영상 길이 35분)">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('dailyCheckinModal')">다음에 하기</button>
+        <button class="btn btn-primary" onclick="semesterModule.saveDailyCheckin()">일지 저장 및 알림 등록</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Core Scripts -->
+  <script src="js/modules/graduation.js"></script>
+  <script src="js/modules/semester.js"></script>
+  <script src="js/modules/exam.js"></script>
+  <script src="js/modules/projects.js"></script>
+  <script src="js/modules/admin.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>
