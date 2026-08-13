@@ -137,21 +137,27 @@ const semesterModule = {
     app.showToast(`[${name}] 주 ${addedCount}회 반복 수업 일정 및 강의실이 성공적으로 등록되었습니다!`, 'success');
   },
 
-  handleAssignTimeSelect(val) {
-    const customInput = document.getElementById('newAssignTimeCustom');
-    if (val === 'custom') {
-      if (customInput) customInput.classList.remove('hidden');
-    } else {
-      if (customInput) customInput.classList.add('hidden');
-    }
+  format12to24(ampm, hVal, mVal) {
+    let h = parseInt(hVal) || 12;
+    let m = parseInt(mVal) || 0;
+    if (h < 1) h = 1;
+    if (h > 12) h = 12;
+    if (m < 0) m = 0;
+    if (m > 59) m = 59;
+
+    if (ampm === '오후' && h < 12) h += 12;
+    if (ampm === '오전' && h === 12) h = 0;
+
+    return `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`;
   },
 
   saveNewAssignment() {
     const subject = document.getElementById('newAssignSubject').value.trim() || '일반 과목';
     const title = document.getElementById('newAssignTitle').value.trim();
     const dateVal = document.getElementById('newAssignDate').value;
-    const timeSelect = document.getElementById('newAssignTimeSelect').value;
-    const timeCustom = document.getElementById('newAssignTimeCustom').value;
+    const ampm = document.getElementById('newAssignAmpm').value;
+    const hourVal = document.getElementById('newAssignHour').value;
+    const minVal = document.getElementById('newAssignMin').value;
 
     if (!title) {
       app.showToast('과제 제목을 입력해 주세요!', 'warning');
@@ -160,7 +166,7 @@ const semesterModule = {
 
     const todayStr = new Date().toISOString().split('T')[0];
     const dateStr = dateVal || todayStr;
-    const timeStr = timeSelect === 'custom' ? (timeCustom || '23:59') : timeSelect;
+    const timeStr = this.format12to24(ampm, hourVal, minVal);
     const deadline = `${dateStr} ${timeStr}`;
 
     this.assignments.push({

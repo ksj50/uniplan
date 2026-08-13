@@ -67,20 +67,26 @@ const examModule = {
     if (noteBtn) noteBtn.onclick = () => app.openModal('addNoteModal');
   },
 
-  handleExamTimeSelect(val) {
-    const customInput = document.getElementById('newExamTimeCustom');
-    if (val === 'custom') {
-      if (customInput) customInput.classList.remove('hidden');
-    } else {
-      if (customInput) customInput.classList.add('hidden');
-    }
+  format12to24(ampm, hVal, mVal) {
+    let h = parseInt(hVal) || 9;
+    let m = parseInt(mVal) || 0;
+    if (h < 1) h = 1;
+    if (h > 12) h = 12;
+    if (m < 0) m = 0;
+    if (m > 59) m = 59;
+
+    if (ampm === '오후' && h < 12) h += 12;
+    if (ampm === '오전' && h === 12) h = 0;
+
+    return `${h < 10 ? '0' + h : h}:${m < 10 ? '0' + m : m}`;
   },
 
   saveNewExam() {
     const subject = document.getElementById('newExamSubject').value.trim();
     const dateVal = document.getElementById('newExamDate').value;
-    const timeSelect = document.getElementById('newExamTimeSelect').value;
-    const timeCustom = document.getElementById('newExamTimeCustom').value;
+    const ampm = document.getElementById('newExamAmpm').value;
+    const hourVal = document.getElementById('newExamHour').value;
+    const minVal = document.getElementById('newExamMin').value;
     const status = document.getElementById('newExamStatus').value;
 
     if (!subject) {
@@ -90,7 +96,7 @@ const examModule = {
 
     const todayStr = new Date().toISOString().split('T')[0];
     const dateStr = dateVal || todayStr;
-    const timeStr = timeSelect === 'custom' ? (timeCustom || '09:00') : timeSelect;
+    const timeStr = this.format12to24(ampm, hourVal, minVal);
     const examDate = `${dateStr} ${timeStr}`;
 
     this.subjects.push({
