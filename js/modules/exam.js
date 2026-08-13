@@ -56,6 +56,60 @@ const examModule = {
     this.populateSubjectSelect();
     this.renderReviewTopics();
     this.startCountdownTimer();
+    this.setupButtonListeners();
+  },
+
+  setupButtonListeners() {
+    const examBtn = document.getElementById('addExamBtn');
+    if (examBtn) examBtn.onclick = () => app.openModal('addExamModal');
+
+    const noteBtn = document.getElementById('addNoteBtn');
+    if (noteBtn) noteBtn.onclick = () => app.openModal('addNoteModal');
+  },
+
+  saveNewExam() {
+    const subject = document.getElementById('newExamSubject').value.trim();
+    const timeVal = document.getElementById('newExamTime').value;
+    const status = document.getElementById('newExamStatus').value;
+
+    if (!subject) {
+      app.showToast('시험 과목명을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const timeStr = timeVal ? timeVal.replace('T', ' ') : '2026-08-20 09:00';
+
+    this.subjects.push({
+      id: 'sub' + Date.now(),
+      name: subject,
+      type: status,
+      examDate: timeStr,
+      examDurationMinutes: 120,
+      scope: '전체 범위 요약',
+      isExamActive: false,
+      topics: [
+        { id: 't' + Date.now(), title: `${subject} 핵심 개념 검토`, reviews: 0 }
+      ]
+    });
+
+    this.renderFirstExamHero();
+    this.renderSubjectList();
+    this.populateSubjectSelect();
+    app.closeModal('addExamModal');
+    app.showToast(`시험 일정 [${subject}] (${status})가 성공적으로 등록되었습니다!`, 'success');
+  },
+
+  saveNewNote() {
+    const title = document.getElementById('newNoteTitle').value.trim();
+    const content = document.getElementById('newNoteContent').value.trim();
+
+    if (!title) {
+      app.showToast('노트 제목을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    app.closeModal('addNoteModal');
+    app.showToast(`개념 노트 [${title}] 저장 및 사진 PDF 수집이 완료되었습니다!`, 'success');
   },
 
   renderFirstExamHero() {

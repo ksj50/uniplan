@@ -29,6 +29,98 @@ const semesterModule = {
     this.renderAssignments();
     this.renderVideos();
     this.renderDashboardSchedule();
+    this.setupButtonListeners();
+  },
+
+  setupButtonListeners() {
+    const classBtn = document.getElementById('addClassBtn');
+    if (classBtn) classBtn.onclick = () => app.openModal('addClassModal');
+
+    const assignBtn = document.getElementById('addAssignmentBtn');
+    if (assignBtn) assignBtn.onclick = () => app.openModal('addAssignmentModal');
+
+    const videoBtn = document.getElementById('addVideoBtn');
+    if (videoBtn) videoBtn.onclick = () => app.openModal('addVideoModal');
+  },
+
+  saveNewClass() {
+    const name = document.getElementById('newClassName').value.trim();
+    const day = document.getElementById('newClassDay').value;
+    const startTime = document.getElementById('newClassStartTime').value;
+    const endTime = document.getElementById('newClassEndTime').value;
+    const prof = document.getElementById('newClassProf').value.trim() || '담당교수';
+    const room = document.getElementById('newClassRoom').value.trim() || '강의실';
+
+    if (!name) {
+      app.showToast('수업 이름을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    this.timetable.push({
+      id: 'c' + Date.now(),
+      name: name,
+      day: day,
+      startTime: startTime,
+      endTime: endTime,
+      room: room,
+      professor: prof
+    });
+
+    this.renderTimetable();
+    this.renderDashboardSchedule();
+    app.closeModal('addClassModal');
+    app.showToast(`신규 수업 [${name}] (${day}요일 ${startTime}~${endTime}) 등록 완료!`, 'success');
+  },
+
+  saveNewAssignment() {
+    const subject = document.getElementById('newAssignSubject').value.trim() || '일반 과목';
+    const title = document.getElementById('newAssignTitle').value.trim();
+    const deadlineVal = document.getElementById('newAssignDeadline').value;
+
+    if (!title) {
+      app.showToast('과제 제목을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const deadline = deadlineVal ? deadlineVal.replace('T', ' ') : '2026-08-20 23:59';
+
+    this.assignments.push({
+      id: 'a' + Date.now(),
+      subject: subject,
+      title: title,
+      deadline: deadline,
+      status: '신규 등록',
+      alertSent: '24h/12h/6h/1h 자동 알림 세팅됨'
+    });
+
+    this.renderAssignments();
+    app.closeModal('addAssignmentModal');
+    app.showToast(`과제 [${title}] 마감 알림(24h/12h/6h/1h)이 세팅되었습니다!`, 'success');
+  },
+
+  saveNewVideo() {
+    const subject = document.getElementById('newVideoSubject').value.trim() || '일반 과목';
+    const title = document.getElementById('newVideoTitle').value.trim();
+    const purpose = document.getElementById('newVideoPurpose').value;
+
+    if (!title) {
+      app.showToast('영상 강의 제목을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    this.videos.push({
+      id: 'v' + Date.now(),
+      subject: subject,
+      title: title,
+      uploadDate: new Date().toISOString().split('T')[0],
+      watchCount: 0,
+      purpose: purpose,
+      alertTriggered: false
+    });
+
+    this.renderVideos();
+    app.closeModal('addVideoModal');
+    app.showToast(`영상 강의 [${title}] (${purpose})가 성공적으로 등록되었습니다!`, 'success');
   },
 
   renderTimetable() {

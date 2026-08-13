@@ -15,6 +15,18 @@ const graduationModule = {
   init() {
     this.renderRequirementsTable();
     this.renderRecommendations();
+    this.setupButtonListeners();
+  },
+
+  setupButtonListeners() {
+    const editBtn = document.getElementById('editGradReqBtn');
+    if (editBtn) editBtn.onclick = () => app.openOnboardingModal();
+
+    const updateBtn = document.getElementById('updateUserStatusBtn');
+    if (updateBtn) updateBtn.onclick = () => app.openOnboardingModal();
+
+    const planBtn = document.getElementById('gen3PlansBtn');
+    if (planBtn) planBtn.onclick = () => this.generate3Plans();
   },
 
   renderRequirementsTable() {
