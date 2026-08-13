@@ -91,9 +91,16 @@
             </button>
           </li>
           <li>
+            <button class="nav-btn" data-view="studymode">
+              <i data-lucide="plane"></i>
+              <span>6. ✈️ 비행기 공부 모드</span>
+              <span class="badge badge-accent" style="margin-left:auto; font-size:0.65rem;">HOT</span>
+            </button>
+          </li>
+          <li>
             <button class="nav-btn" data-view="admin">
               <i data-lucide="shield-check"></i>
-              <span>6. 관리자 & 보안 센터</span>
+              <span>7. 관리자 & 보안 센터</span>
             </button>
           </li>
         </ul>
@@ -874,6 +881,108 @@
           </div>
         </section>
 
+
+        <!-- ==================== 6. IN-FLIGHT STUDY MODE & POMODORO ==================== -->
+        <section id="view-studymode" class="view-section">
+          <div class="section-banner glass-card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));">
+            <div class="banner-content">
+              <h2><i data-lucide="plane"></i> ✈️ 비행기 기내 공부 모드 & 뽀모도로 타이머</h2>
+              <p>비행기 창밖의 스쳐지나가는 구름 풍경, 은은한 기내 엔진 백색소음, 실시간 항로 지도와 함께 몰입감을 극대화하여 공부하세요.</p>
+            </div>
+            <div class="banner-actions">
+              <button class="btn btn-secondary" onclick="studyModeModule.setTimerMode(25, 5)"><i data-lucide="clock"></i> 25분/5분 뽀모도로</button>
+              <button class="btn btn-primary" onclick="studyModeModule.setTimerMode(50, 10)"><i data-lucide="zap"></i> 50분/10분 딥포커스</button>
+            </div>
+          </div>
+
+          <div class="grid-2col">
+            <!-- Left: Airplane Cabin Window & Pomodoro Controls -->
+            <div class="glass-card" style="text-align:center;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <label class="form-label" style="margin:0; font-weight:700;">공부 과목:</label>
+                  <select id="studySubjectSelect" class="form-control form-control-sm" style="width:180px;">
+                    <option value="자료구조 및 알고리즘" selected>자료구조 및 알고리즘</option>
+                    <option value="운영체제">운영체제</option>
+                    <option value="웹 프론트엔드 실습">웹 프론트엔드 실습</option>
+                    <option value="데이터베이스">데이터베이스</option>
+                    <option value="인공지능 개론">인공지능 개론</option>
+                    <option value="자율 학습 / 시험 공부">자율 학습 / 시험 공부</option>
+                  </select>
+                </div>
+                <div id="audioStatusBadge" class="badge badge-accent" style="cursor:pointer;" onclick="studyModeModule.toggleAudio()">
+                  <i data-lucide="volume-2"></i> ✈️ 기내 백색소음 재생
+                </div>
+              </div>
+
+              <!-- Animated Airplane Window Frame -->
+              <div class="airplane-window-frame">
+                <div class="window-glass">
+                  <div class="cloud-layer"></div>
+                  <div class="cloud-layer-2"></div>
+                  <div class="window-reflection"></div>
+                  <div class="flight-telemetry-badge">
+                    ✈️ 순항 중 (FL360) | <span id="telemetrySpeed">880 km/h</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Digital Clock Display -->
+              <div id="pomodoroClockDisplay" class="pomodoro-clock">25:00</div>
+
+              <!-- Controls -->
+              <div style="display:flex; justify-content:center; gap:0.5rem; margin-top:0.8rem; flex-wrap:wrap;">
+                <button id="startStudyBtn" class="btn btn-primary" onclick="studyModeModule.startTimer()"><i data-lucide="play"></i> 공부 시작하기</button>
+                <button id="pauseStudyBtn" class="btn btn-warning hidden" onclick="studyModeModule.pauseTimer()"><i data-lucide="pause"></i> 일시 정지</button>
+                <button class="btn btn-secondary" onclick="studyModeModule.resetTimer()"><i data-lucide="rotate-ccw"></i> 리셋</button>
+                <button class="btn btn-success" onclick="studyModeModule.openFinishModal()"><i data-lucide="check-circle"></i> 공부 종료 및 일지 기록</button>
+              </div>
+
+              <!-- Volume Control Slider -->
+              <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-top:1rem; font-size:0.8rem; color:var(--text-muted);">
+                <i data-lucide="volume-1"></i>
+                <span>기내 백색소음 볼륨:</span>
+                <input type="range" min="0" max="1" step="0.05" value="0.3" style="width:120px;" oninput="studyModeModule.setVolume(this.value)">
+              </div>
+            </div>
+
+            <!-- Right: Real-time Flight Route Tracking Map & Study Logs -->
+            <div class="right-stack">
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="map-pin"></i> 비행기 실시간 항로 지도 (ICN ✈️ CDG)</h3>
+                  <span class="badge badge-primary">실시간 위성 추적</span>
+                </div>
+                <div id="flightRouteMap" style="height:220px; width:100%; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-color);"></div>
+                <div style="display:flex; justify-content:space-around; align-items:center; margin-top:0.75rem; font-size:0.78rem; text-align:center;">
+                  <div>
+                    <div class="text-muted">현재 고도</div>
+                    <strong id="telemetryAlt" style="color:var(--primary);">36,000 ft</strong>
+                  </div>
+                  <div style="border-left:1px solid var(--border-color); border-right:1px solid var(--border-color); padding:0 0.8rem;">
+                    <div class="text-muted">남은 거리</div>
+                    <strong id="telemetryDist" style="color:var(--warning);">8,900 km</strong>
+                  </div>
+                  <div>
+                    <div class="text-muted">현재 항로</div>
+                    <strong style="color:var(--success);">인천(ICN) ✈️ 파리(CDG)</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Study History Logs -->
+              <div class="glass-card">
+                <div class="card-header">
+                  <h3><i data-lucide="book-open"></i> 최근 공부 기록 & 달성 범위 일지</h3>
+                </div>
+                <div id="studyLogList" class="study-log-list">
+                  <!-- Injected by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -1266,16 +1375,41 @@
     </div>
   </div>
 
+  <!-- Finish Study & Scope Input Modal -->
+  <div id="finishStudyModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i data-lucide="check-circle"></i> 공부 세션 완료 및 학습 범위 기록</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('finishStudyModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem;">
+        <div class="input-group">
+          <label class="form-label" style="font-weight:700;">공부한 과목</label>
+          <input type="text" id="finishStudySubject" class="form-control" placeholder="예: 자료구조 및 알고리즘">
+        </div>
+        <div class="input-group">
+          <label class="form-label" style="font-weight:700;">오늘 공부한 학습 범위 및 달성 목표 <span style="color:var(--danger)">*</span></label>
+          <textarea id="finishStudyScope" class="form-control" rows="4" placeholder="예: [자료구조] Red-Black Tree 트리 회전 및 삽입/삭제 5개 문제 풀이 완료!"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('finishStudyModal')">취소</button>
+        <button class="btn btn-primary" onclick="studyModeModule.saveStudyLog()"><i data-lucide="check"></i> 공부 일지 저장하기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260813_06"></script>
-  <script src="js/modules/semester.js?v=20260813_06"></script>
-  <script src="js/modules/exam.js?v=20260813_06"></script>
-  <script src="js/modules/projects.js?v=20260813_06"></script>
-  <script src="js/modules/admin.js?v=20260813_06"></script>
-  <script src="js/app.js?v=20260813_06"></script>
+  <script src="js/modules/graduation.js?v=20260813_07"></script>
+  <script src="js/modules/semester.js?v=20260813_07"></script>
+  <script src="js/modules/exam.js?v=20260813_07"></script>
+  <script src="js/modules/projects.js?v=20260813_07"></script>
+  <script src="js/modules/admin.js?v=20260813_07"></script>
+  <script src="js/modules/studymode.js?v=20260813_07"></script>
+  <script src="js/app.js?v=20260813_07"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

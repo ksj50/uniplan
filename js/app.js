@@ -21,6 +21,7 @@ const app = {
     if (window.examModule) examModule.init();
     if (window.projectsModule) projectsModule.init();
     if (window.adminModule) adminModule.init();
+    if (window.studyModeModule) studyModeModule.init();
 
     this.renderNotifications();
     this.checkOnboarding();
@@ -243,7 +244,8 @@ const app = {
       exam: { title: '3. 시험 기간 & 회독 노트', sub: '시험 D-Day 카운트다운,과목별 N회독 체크 및 사진 노트 PDF 자동 변환' },
       extracurricular: { title: '4. 대외 활동 매니저', sub: '공모전, 서포터즈 AI 정보 파싱, 관심도/마감순 정렬 & 4자리 PIN 팀 룸' },
       teamproject: { title: '5. 교내 팀프로젝트', sub: '공통 회의 시간 자동 계산, 교내/외부 중간지점 지도 추천, 1:1/단체대화 및 갤러리' },
-      admin: { title: '6. 관리자 & 보안 센터', sub: '서비스 이용 통계, 1:1 문의 메세지 관리 및 유료 API 보안 키 암호화 래퍼' }
+      studymode: { title: '6. ✈️ 비행기 공부 모드', sub: '비행기 창밖 풍경, 기내 엔진 백색소음, 뽀모도로 타이머 & 실시간 항로 지도' },
+      admin: { title: '7. 관리자 & 보안 센터', sub: '서비스 이용 통계, 1:1 문의 메세지 관리 및 유료 API 보안 키 암호화 래퍼' }
     };
 
     const info = titleMap[viewId] || titleMap.dashboard;
