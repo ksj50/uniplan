@@ -1,5 +1,5 @@
 /**
- * Module 6: In-Flight Study Mode & 360° 3D Pomodoro Service
+ * Module 6: FlightAware Style Live Flight Tracking & Pomodoro Timer Service
  */
 const studyModeModule = {
   // Timer State
@@ -9,8 +9,9 @@ const studyModeModule = {
   timerState: 'stopped', // 'stopped', 'running', 'paused'
   timerInterval: null,
   currentSubject: '자료구조 및 알고리즘',
+  flightProgress: 0, // 0 to 1
 
-  // Audio Noise Generator (Web Audio API)
+  // Audio Engine
   audioCtx: null,
   noiseNode: null,
   gainNode: null,
@@ -18,22 +19,7 @@ const studyModeModule = {
   isAudioPlaying: false,
   volume: 0.3,
 
-  // 360-Degree Three.js 3D View State
-  scene: null,
-  camera: null,
-  renderer: null,
-  lon: 0,
-  lat: 0,
-  phi: 0,
-  theta: 0,
-  isUserInteracting: false,
-  onPointerDownPointerX: 0,
-  onPointerDownPointerY: 0,
-  onPointerDownLon: 0,
-  onPointerDownLat: 0,
-  cloudsGroup: null,
-
-  // Map & Flight Route State
+  // Map & Flight State
   flightMap: null,
   airplaneMarker: null,
   flightPathPolyline: null,
@@ -41,8 +27,15 @@ const studyModeModule = {
 
   routes: {
     icn_cdg: {
-      title: '인천(ICN) ✈️ 파리(CDG)',
-      dist: '8,900 km',
+      flightNo: '대한항공 KE901 (KAL901)',
+      aircraft: 'Boeing 777-300ER (B77W)',
+      originCode: 'ICN / RKSI',
+      originName: '인천국제공항 (Seoul/Incheon)',
+      depTime: '13:25 KST (정시 이륙)',
+      destCode: 'CDG / LFPG',
+      destName: '파리 샤를드골 공항 (Paris CDG)',
+      arrTime: '18:30 CET (정시 도착)',
+      totalDistKm: 8900,
       coords: [
         [37.4606, 126.4407], // ICN
         [40.0000, 116.4000], // Beijing
@@ -50,42 +43,86 @@ const studyModeModule = {
         [55.7558, 37.6173],   // Moscow
         [52.5200, 13.4050],   // Berlin
         [48.8566, 2.3522]    // CDG
+      ],
+      waypoints: [
+        { name: 'RKSI (ICN)', location: '인천국제공항 이륙', time: '13:25 KST', alt: '0 ft', status: 'passed' },
+        { name: 'ZBAA (BJD)', location: '베이징 비행관제구역', time: '15:10 KST', alt: '34,000 ft', status: 'passed' },
+        { name: 'UUEE (SVO)', location: '모스크바 상공 순항', time: '19:40 MSK', alt: '36,000 ft', status: 'enroute' },
+        { name: 'EDDB (BER)', location: '베를린 진입 웨이포인트', time: '21:15 CET', alt: '36,000 ft', status: 'scheduled' },
+        { name: 'LFPG (CDG)', location: '파리 샤를드골 최종 착륙', time: '22:30 CET', alt: '0 ft', status: 'scheduled' }
       ]
     },
     icn_nrt: {
-      title: '인천(ICN) ✈️ 도쿄(NRT)',
-      dist: '1,260 km',
+      flightNo: '아시아나 OZ102 (AAR102)',
+      aircraft: 'Airbus A350-900 (A359)',
+      originCode: 'ICN / RKSI',
+      originName: '인천국제공항 (Seoul/Incheon)',
+      depTime: '09:00 KST (정시 이륙)',
+      destCode: 'NRT / RJAA',
+      destName: '도쿄 나리타 공항 (Tokyo Narita)',
+      arrTime: '11:15 JST (정시 도착)',
+      totalDistKm: 1260,
       coords: [
         [37.4606, 126.4407], // ICN
         [37.5500, 129.0000], // East Sea
         [36.6500, 137.1500], // Toyama
         [35.7647, 140.3863]  // NRT
+      ],
+      waypoints: [
+        { name: 'RKSI (ICN)', location: '인천국제공항 이륙', time: '09:00 KST', alt: '0 ft', status: 'passed' },
+        { name: 'KANSU', location: '동해 상공 웨이포인트', time: '09:40 KST', alt: '31,000 ft', status: 'enroute' },
+        { name: 'RJAA (NRT)', location: '도쿄 나리타 최종 착륙', time: '11:15 JST', alt: '0 ft', status: 'scheduled' }
       ]
     },
     icn_jfk: {
-      title: '인천(ICN) ✈️ 뉴욕(JFK)',
-      dist: '11,050 km',
+      flightNo: '대한항공 KE081 (KAL081)',
+      aircraft: 'Airbus A380-800 (A388)',
+      originCode: 'ICN / RKSI',
+      originName: '인천국제공항 (Seoul/Incheon)',
+      depTime: '10:00 KST (정시 이륙)',
+      destCode: 'JFK / KJFK',
+      destName: '뉴욕 존 F. 케네디 공항 (New York JFK)',
+      arrTime: '11:20 EST (정시 도착)',
+      totalDistKm: 11050,
       coords: [
         [37.4606, 126.4407], // ICN
         [45.0000, 142.0000], // Sakhalin
         [61.2181, -149.9003], // Anchorage
         [49.2827, -123.1207], // Vancouver
         [40.6413, -73.7781]  // JFK
+      ],
+      waypoints: [
+        { name: 'RKSI (ICN)', location: '인천국제공항 이륙', time: '10:00 KST', alt: '0 ft', status: 'passed' },
+        { name: 'PANC (ANC)', location: '앵커리지 상공 순항', time: '18:30 AKST', alt: '38,000 ft', status: 'enroute' },
+        { name: 'CYVR (YVR)', location: '밴쿠버 진입 웨이포인트', time: '22:10 PST', alt: '38,000 ft', status: 'scheduled' },
+        { name: 'KJFK (JFK)', location: '뉴욕 JFK 최종 착륙', time: '11:20 EST', alt: '0 ft', status: 'scheduled' }
       ]
     },
     icn_lhr: {
-      title: '인천(ICN) ✈️ 런던(LHR)',
-      dist: '8,860 km',
+      flightNo: '아시아나 OZ521 (AAR521)',
+      aircraft: 'Boeing 777-200ER (B772)',
+      originCode: 'ICN / RKSI',
+      originName: '인천국제공항 (Seoul/Incheon)',
+      depTime: '12:30 KST (정시 이륙)',
+      destCode: 'LHR / EGLL',
+      destName: '런던 히드로 공항 (London Heathrow)',
+      arrTime: '17:30 BST (정시 도착)',
+      totalDistKm: 8860,
       coords: [
         [37.4606, 126.4407], // ICN
         [52.0000, 104.0000], // Irkutsk
         [60.1699, 24.9384],  // Helsinki
         [51.4700, -0.4543]   // LHR
+      ],
+      waypoints: [
+        { name: 'RKSI (ICN)', location: '인천국제공항 이륙', time: '12:30 KST', alt: '0 ft', status: 'passed' },
+        { name: 'EFHK (HEL)', location: '헬싱키 진입 웨이포인트', time: '18:50 EEST', alt: '36,000 ft', status: 'enroute' },
+        { name: 'EGLL (LHR)', location: '런던 히드로 최종 착륙', time: '17:30 BST', alt: '0 ft', status: 'scheduled' }
       ]
     }
   },
 
-  // Study History Logs
+  // Study Logs
   studyLogs: [
     { id: 'log1', date: '2026-08-12', subject: '자료구조 및 알고리즘', minutes: 50, scope: 'Red-Black Tree 삽입/삭제 알고리즘 5문제 해결' },
     { id: 'log2', date: '2026-08-13', subject: '운영체제', minutes: 25, scope: '세마포어와 뮤텍스 락 차이점 노트 정돈' }
@@ -106,145 +143,7 @@ const studyModeModule = {
     }
   },
 
-  // ---------------- 360-DEGREE ROTATABLE 3D SCENE ----------------
-  init3DPanorama() {
-    const container = document.getElementById('panorama360Container');
-    if (!container || this.renderer) return;
-
-    const width = container.clientWidth || 400;
-    const height = container.clientHeight || 320;
-
-    // Three.js Scene & Camera
-    this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(75, width / height, 1, 1100);
-    this.camera.target = new THREE.Vector3(0, 0, 0);
-
-    // 360 Sky Sphere Geometry
-    const geometry = new THREE.SphereGeometry(500, 60, 40);
-    geometry.scale(-1, 1, 1);
-
-    // Canvas procedural sky texture
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-
-    const grad = ctx.createLinearGradient(0, 0, 0, 512);
-    grad.addColorStop(0, '#0F172A');
-    grad.addColorStop(0.4, '#1E293B');
-    grad.addColorStop(0.7, '#0284C7');
-    grad.addColorStop(1.0, '#38BDF8');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1024, 512);
-
-    // Add procedurally generated clouds
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-    for (let i = 0; i < 40; i++) {
-      const rx = Math.random() * 1024;
-      const ry = 250 + Math.random() * 180;
-      const rw = 120 + Math.random() * 200;
-      const rh = 40 + Math.random() * 60;
-      ctx.beginPath();
-      ctx.ellipse(rx, ry, rw, rh, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.MeshBasicMaterial({ map: texture });
-    const mesh = new THREE.Mesh(geometry, material);
-    this.scene.add(mesh);
-
-    // Add 3D Floating Clouds
-    this.cloudsGroup = new THREE.Group();
-    for (let i = 0; i < 15; i++) {
-      const cloudGeo = new THREE.SphereGeometry(25 + Math.random() * 25, 12, 12);
-      const cloudMat = new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.35 + Math.random() * 0.2
-      });
-      const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-      cloudMesh.position.set(
-        (Math.random() - 0.5) * 600,
-        (Math.random() - 0.5) * 200 - 50,
-        (Math.random() - 0.5) * 600
-      );
-      this.cloudsGroup.add(cloudMesh);
-    }
-    this.scene.add(this.cloudsGroup);
-
-    // WebGL Renderer
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.setSize(width, height);
-    container.appendChild(this.renderer.domElement);
-
-    // Mouse & Touch 360 Drag Event Listeners
-    container.addEventListener('pointerdown', (e) => this.onPointerDown(e), false);
-    container.addEventListener('pointermove', (e) => this.onPointerMove(e), false);
-    container.addEventListener('pointerup', () => this.onPointerUp(), false);
-
-    window.addEventListener('resize', () => this.onWindowResize(), false);
-
-    this.animate3D();
-  },
-
-  onPointerDown(e) {
-    this.isUserInteracting = true;
-    this.onPointerDownPointerX = e.clientX;
-    this.onPointerDownPointerY = e.clientY;
-    this.onPointerDownLon = this.lon;
-    this.onPointerDownLat = this.lat;
-  },
-
-  onPointerMove(e) {
-    if (!this.isUserInteracting) return;
-    this.lon = (this.onPointerDownPointerX - e.clientX) * 0.25 + this.onPointerDownLon;
-    this.lat = (e.clientY - this.onPointerDownPointerY) * 0.25 + this.onPointerDownLat;
-  },
-
-  onPointerUp() {
-    this.isUserInteracting = false;
-  },
-
-  onWindowResize() {
-    const container = document.getElementById('panorama360Container');
-    if (!container || !this.renderer || !this.camera) return;
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
-  },
-
-  animate3D() {
-    requestAnimationFrame(() => this.animate3D());
-
-    if (!this.isUserInteracting) {
-      this.lon += 0.04; // Gentle auto-pan
-    }
-
-    this.lat = Math.max(-85, Math.min(85, this.lat));
-    this.phi = THREE.MathUtils.degToRad(90 - this.lat);
-    this.theta = THREE.MathUtils.degToRad(this.lon);
-
-    this.camera.target.x = 500 * Math.sin(this.phi) * Math.cos(this.theta);
-    this.camera.target.y = 500 * Math.cos(this.phi);
-    this.camera.target.z = 500 * Math.sin(this.phi) * Math.sin(this.theta);
-
-    this.camera.lookAt(this.camera.target);
-
-    // Slowly move 3D clouds
-    if (this.cloudsGroup) {
-      this.cloudsGroup.rotation.y += 0.0008;
-    }
-
-    if (this.renderer && this.scene && this.camera) {
-      this.renderer.render(this.scene, this.camera);
-    }
-  },
-
-  // ---------------- REALTIME SATELLITE FLIGHT MAP ----------------
+  // ---------------- REALTIME SATELLITE FLIGHT RADAR MAP ----------------
   initFlightMap() {
     const container = document.getElementById('flightRouteMap');
     if (!container) return;
@@ -256,12 +155,12 @@ const studyModeModule = {
       return;
     }
 
-    // Leaflet Satellite World Map
+    // FlightAware Radar Dark Tile Map
     this.flightMap = L.map('flightRouteMap', { zoomControl: true }).setView([45.0, 50.0], 2);
 
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 18,
-      attribution: 'Tiles &copy; Esri World Imagery'
+      attribution: '&copy; FlightAware Radar &copy; OpenStreetMap &copy; CARTO'
     }).addTo(this.flightMap);
 
     this.drawRoute();
@@ -282,85 +181,81 @@ const studyModeModule = {
 
     const routeData = this.routes[this.currentRouteKey] || this.routes.icn_cdg;
 
-    // Update Ticket Boarding Pass Text
-    const origCodeEl = document.getElementById('ticketOriginCode');
-    const origNameEl = document.getElementById('ticketOriginName');
-    const destCodeEl = document.getElementById('ticketDestCode');
-    const destNameEl = document.getElementById('ticketDestName');
-    const flightTimeEl = document.getElementById('ticketFlightTime');
+    // Update FlightAware Banner Telemetry
+    const flightNoEl = document.getElementById('faFlightNo');
+    const aircraftTypeEl = document.getElementById('faAircraftType');
+    const origCodeEl = document.getElementById('faOriginCode');
+    const origNameEl = document.getElementById('faOriginName');
+    const depTimeEl = document.getElementById('faDepTime');
+    const destCodeEl = document.getElementById('faDestCode');
+    const destNameEl = document.getElementById('faDestName');
+    const arrTimeEl = document.getElementById('faArrTime');
 
-    if (this.currentRouteKey === 'icn_cdg') {
-      if (origCodeEl) origCodeEl.innerText = 'ICN';
-      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
-      if (destCodeEl) destCodeEl.innerText = 'CDG';
-      if (destNameEl) destNameEl.innerText = 'Paris (Charles de Gaulle)';
-      if (flightTimeEl) flightTimeEl.innerText = '8h 45m Flight';
-    } else if (this.currentRouteKey === 'icn_nrt') {
-      if (origCodeEl) origCodeEl.innerText = 'ICN';
-      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
-      if (destCodeEl) destCodeEl.innerText = 'NRT';
-      if (destNameEl) destNameEl.innerText = 'Tokyo (Narita)';
-      if (flightTimeEl) flightTimeEl.innerText = '2h 15m Flight';
-    } else if (this.currentRouteKey === 'icn_jfk') {
-      if (origCodeEl) origCodeEl.innerText = 'ICN';
-      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
-      if (destCodeEl) destCodeEl.innerText = 'JFK';
-      if (destNameEl) destNameEl.innerText = 'New York (John F. Kennedy)';
-      if (flightTimeEl) flightTimeEl.innerText = '14h 20m Flight';
-    } else if (this.currentRouteKey === 'icn_lhr') {
-      if (origCodeEl) origCodeEl.innerText = 'ICN';
-      if (origNameEl) origNameEl.innerText = 'Incheon (Seoul)';
-      if (destCodeEl) destCodeEl.innerText = 'LHR';
-      if (destNameEl) destNameEl.innerText = 'London (Heathrow)';
-      if (flightTimeEl) flightTimeEl.innerText = '11h 30m Flight';
-    }
+    if (flightNoEl) flightNoEl.innerText = routeData.flightNo;
+    if (aircraftTypeEl) aircraftTypeEl.innerText = routeData.aircraft;
+    if (origCodeEl) origCodeEl.innerText = routeData.originCode;
+    if (origNameEl) origNameEl.innerText = routeData.originName;
+    if (depTimeEl) depTimeEl.innerText = routeData.depTime;
+    if (destCodeEl) destCodeEl.innerText = routeData.destCode;
+    if (destNameEl) destNameEl.innerText = routeData.destName;
+    if (arrTimeEl) arrTimeEl.innerText = routeData.arrTime;
 
-    // Sync Passenger Name from User Profile
-    const passNameEl = document.getElementById('ticketPassengerName');
-    if (passNameEl) {
-      const saved = localStorage.getItem('uniplan_user_profile');
-      if (saved) {
-        try {
-          const p = JSON.parse(saved);
-          if (p.name) passNameEl.innerText = `${p.name} 학생`;
-        } catch (e) {}
-      }
-    }
+    this.renderWaypoints(routeData.waypoints);
 
-    // Clear old lines/markers
+    // Clear old layers
     if (this.flightPathPolyline) this.flightMap.removeLayer(this.flightPathPolyline);
     if (this.airplaneMarker) this.flightMap.removeLayer(this.airplaneMarker);
 
-    // Draw glowing flight route line
+    // Draw FlightAware Cyan Route Vector Polyline
     this.flightPathPolyline = L.polyline(routeData.coords, {
-      color: '#F59E0B',
-      weight: 4,
-      dashArray: '8, 12',
-      opacity: 0.9
+      color: '#38BDF8',
+      weight: 3,
+      dashArray: '6, 8',
+      opacity: 0.95
     }).addTo(this.flightMap);
 
-    // Custom Glowing Airplane Icon
+    // Custom FlightAware Airplane Marker with Vector Tag
     const planeIcon = L.divIcon({
       className: 'custom-plane-icon',
-      html: `<div style="color:#38BDF8; font-size:24px; filter:drop-shadow(0 0 8px rgba(56,189,248,0.9)); transform:rotate(45deg);">✈️</div>`,
-      iconSize: [30, 30],
-      iconAnchor: [15, 15]
+      html: `
+        <div style="position:relative; display:flex; align-items:center;">
+          <div style="color:#F59E0B; font-size:24px; filter:drop-shadow(0 0 8px rgba(245,158,11,0.9)); transform:rotate(45deg);">✈️</div>
+          <div style="margin-left:6px; background:rgba(15,23,42,0.9); border:1px solid #38BDF8; padding:2px 6px; border-radius:4px; font-size:0.65rem; color:#fff; font-weight:700; white-space:nowrap; font-family:sans-serif; box-shadow:0 2px 8px rgba(0,0,0,0.8);">
+            ${routeData.flightNo.split(' ')[1] || 'KE901'} | 36,000ft
+          </div>
+        </div>
+      `,
+      iconSize: [120, 30],
+      iconAnchor: [12, 15]
     });
 
     this.airplaneMarker = L.marker(routeData.coords[0], { icon: planeIcon }).addTo(this.flightMap);
     this.flightMap.fitBounds(this.flightPathPolyline.getBounds(), { padding: [30, 30] });
 
-    // Update Telemetry Text
-    const routeText = document.getElementById('routeTitleText');
-    const distText = document.getElementById('telemetryDist');
-    if (routeText) routeText.innerText = routeData.title;
-    if (distText) distText.innerText = routeData.dist;
-
     this.updateAirplanePosition(this.flightProgress);
   },
 
+  renderWaypoints(waypoints) {
+    const tbody = document.getElementById('faWaypointTable');
+    if (!tbody || !waypoints) return;
+
+    tbody.innerHTML = waypoints.map(w => `
+      <tr>
+        <td style="font-weight:700; color:#38BDF8;">${w.name}</td>
+        <td style="color:#F1F5F9;">${w.location}</td>
+        <td style="color:#94A3B8;">${w.time}</td>
+        <td style="color:#F59E0B; font-weight:600;">${w.alt}</td>
+        <td>
+          ${w.status === 'passed' ? '<span class="badge badge-success">🟢 통과</span>' :
+            w.status === 'enroute' ? '<span class="badge badge-warning">🟡 순항 중</span>' :
+            '<span class="badge badge-secondary">⚪ 예정</span>'}
+        </td>
+      </tr>
+    `).join('');
+  },
+
   updateAirplanePosition(progress) {
-    if (!this.airplaneMarker || !this.routes[this.currentRouteKey]) return;
+    if (!this.routes[this.currentRouteKey]) return;
 
     const routeData = this.routes[this.currentRouteKey];
     const coords = routeData.coords;
@@ -369,27 +264,45 @@ const studyModeModule = {
     const index = Math.floor(scaledProgress);
     const segmentProgress = scaledProgress - index;
 
-    if (index >= totalSegments) {
-      this.airplaneMarker.setLatLng(coords[totalSegments]);
-      return;
+    if (this.airplaneMarker) {
+      if (index >= totalSegments) {
+        this.airplaneMarker.setLatLng(coords[totalSegments]);
+      } else {
+        const start = coords[index];
+        const end = coords[index + 1];
+        const lat = start[0] + (end[0] - start[0]) * segmentProgress;
+        const lng = start[1] + (end[1] - start[1]) * segmentProgress;
+        this.airplaneMarker.setLatLng([lat, lng]);
+      }
     }
 
-    const start = coords[index];
-    const end = coords[index + 1];
+    // Telemetry Progress Bar & Metrics Update
+    const pct = Math.floor(progress * 100);
+    const travelledKm = Math.floor(routeData.totalDistKm * progress);
+    const remainKm = routeData.totalDistKm - travelledKm;
 
-    const lat = start[0] + (end[0] - start[0]) * segmentProgress;
-    const lng = start[1] + (end[1] - start[1]) * segmentProgress;
+    const progressBar = document.getElementById('faProgressBar');
+    const elapsedStr = document.getElementById('faElapsedStr');
+    const remainStr = document.getElementById('faRemainingTimeStr');
+    const distStr = document.getElementById('faDistanceStr');
 
-    this.airplaneMarker.setLatLng([lat, lng]);
+    if (progressBar) progressBar.style.width = `${pct}%`;
+    if (elapsedStr) elapsedStr.innerHTML = `비행 진행: <strong>${pct}%</strong>`;
+    
+    const remMins = Math.floor(this.secondsRemaining / 60);
+    const remSecs = this.secondsRemaining % 60;
+    if (remainStr) remainStr.innerText = `⏳ ${remMins}분 ${remSecs < 10 ? '0' + remSecs : remSecs}초 남음`;
+
+    if (distStr) distStr.innerText = `총 ${routeData.totalDistKm.toLocaleString()} km 중 ${travelledKm.toLocaleString()} km 운항 (남은 거리: ${remainKm.toLocaleString()} km)`;
 
     const speedEl = document.getElementById('telemetrySpeed');
-    if (speedEl) speedEl.innerText = `${Math.floor(870 + Math.random() * 25)} km/h`;
+    if (speedEl) speedEl.innerText = `${Math.floor(865 + Math.random() * 20)} km/h (475 kt)`;
   },
 
-  // ---------------- TIMER CONTROL ----------------
+  // ---------------- TIMER CONTROLS ----------------
   setTimerMode(focusMins, breakMins) {
     if (this.timerState === 'running') {
-      if (!confirm('현재 진행 중인 뽀모도로 공부 타이머를 새로 시작하시겠습니까?')) return;
+      if (!confirm('현재 진행 중인 FlightAware 집중 타이머를 새로 시작하시겠습니까?')) return;
     }
     this.pauseTimer();
     this.focusMinutes = focusMins;
@@ -399,7 +312,7 @@ const studyModeModule = {
     this.flightProgress = 0;
     this.updateTimerDisplay();
     this.updateAirplanePosition(0);
-    app.showToast(`[뽀모도로 설정] ${focusMins}분 집중 / ${breakMins}분 휴식 모드 선택됨`, 'info');
+    app.showToast(`[FlightAware 설정] ${focusMins}분 집중 / ${breakMins}분 휴식 항로 선택됨`, 'info');
   },
 
   startTimer() {
@@ -421,7 +334,7 @@ const studyModeModule = {
       } else {
         this.pauseTimer();
         this.playBellSound();
-        app.showToast('🎉 뽀모도로 목표 집중 시간 달성! 오늘 공부한 학습 범위를 기록해 보세요.', 'success');
+        app.showToast('🎉 FlightAware 비행 완주! 오늘의 공부 학습 범위를 기록해 보세요.', 'success');
         this.openFinishModal();
       }
     }, 1000);
@@ -431,7 +344,7 @@ const studyModeModule = {
     if (startBtn) startBtn.classList.add('hidden');
     if (pauseBtn) pauseBtn.classList.remove('hidden');
 
-    app.showToast('✈️ 360° 3D 공부 뷰 & 기내 백색소음 타이머 시작!', 'success');
+    app.showToast('✈️ FlightAware 실시간 항공 레이더 & 집중 타이머 시작!', 'success');
   },
 
   pauseTimer() {
@@ -510,7 +423,7 @@ const studyModeModule = {
       this.isAudioPlaying = true;
 
       const audioBadge = document.getElementById('audioStatusBadge');
-      if (audioBadge) audioBadge.innerHTML = `<i data-lucide="volume-2"></i> ✈️ 기내 엔진 소음 재생 중`;
+      if (audioBadge) audioBadge.innerHTML = `<i data-lucide="volume-2"></i> ✈️ 기내 ASMR 재생 중`;
     } catch (e) {
       console.log(e);
     }
@@ -606,13 +519,13 @@ const studyModeModule = {
     }
 
     container.innerHTML = this.studyLogs.map(l => `
-      <div class="activity-card" style="margin-bottom:0.5rem; border-left:4px solid var(--primary);">
+      <div class="activity-card" style="margin-bottom:0.5rem; border-left:4px solid var(--primary); background:#1E293B;">
         <div class="activity-main">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:0.88rem;">[${l.subject}] ${l.minutes}분 집중 완료</strong>
+            <strong style="font-size:0.88rem; color:#fff;">[${l.subject}] ${l.minutes}분 집중 완료</strong>
             <span class="badge badge-accent">${l.date}</span>
           </div>
-          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem;">
+          <div style="font-size:0.8rem; color:#94A3B8; margin-top:0.3rem;">
             📝 <strong>학습 범위:</strong> ${l.scope}
           </div>
         </div>

@@ -882,65 +882,132 @@
         </section>
 
 
-        <!-- ==================== 6. IN-FLIGHT STUDY MODE & POMODORO ==================== -->
+        <!-- ==================== 6. IN-FLIGHT STUDY MODE & POMODORO (FlightAware Style) ==================== -->
         <section id="view-studymode" class="view-section">
-          <div class="section-banner glass-card" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.9));">
-            <div class="banner-content">
-              <h2><i data-lucide="plane"></i> ✈️ FocusFlight - 비행기 타기 공부 모드</h2>
-              <p>비행 탑승권 티켓 발권, 실시간 위성 3D 지구본 항로 추적, 기내 ASMR 타이머와 함께 집중 모드에 몰입하세요.</p>
+          <!-- FlightAware Banner Header -->
+          <div class="glass-card mb-4" style="background:#0F172A; border:1px solid #1E293B; box-shadow:0 10px 30px rgba(0,0,0,0.6);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; border-bottom:1px solid #334155; padding-bottom:1rem;">
+              <!-- Flight Title & Aircraft -->
+              <div style="display:flex; align-items:center; gap:0.8rem;">
+                <div style="width:44px; height:44px; background:linear-gradient(135deg, #0284C7, #0369A1); border-radius:10px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.5rem; box-shadow:0 0 12px rgba(2,132,199,0.5);">
+                  ✈️
+                </div>
+                <div>
+                  <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                    <h2 style="margin:0; font-size:1.25rem; font-weight:800; color:#fff;" id="faFlightNo">대한항공 KE901 (KAL901)</h2>
+                    <span class="badge badge-success" id="faFlightStatus">🟢 En Route / 순항 중</span>
+                    <span class="badge badge-accent">FlightAware Live Radar</span>
+                  </div>
+                  <div style="font-size:0.78rem; color:#94A3B8; margin-top:0.2rem;">
+                    기종: <strong style="color:#F1F5F9;" id="faAircraftType">Boeing 777-300ER (B77W)</strong> | 등록번호: <strong style="color:#38BDF8;">HL8001</strong> | Squawk: <strong style="color:#F59E0B;">7701</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Flight Route Selector & Preset Controls -->
+              <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                <select id="flightRouteSelect" class="form-control form-control-sm" style="width:230px; background:#1E293B; color:#fff; border-color:#334155; font-weight:600;" onchange="studyModeModule.changeRoute(this.value)">
+                  <option value="icn_cdg" selected>KE901: 인천(ICN) ✈️ 파리(CDG)</option>
+                  <option value="icn_nrt">OZ102: 인천(ICN) ✈️ 도쿄(NRT)</option>
+                  <option value="icn_jfk">KE081: 인천(ICN) ✈️ 뉴욕(JFK)</option>
+                  <option value="icn_lhr">OZ521: 인천(ICN) ✈️ 런던(LHR)</option>
+                </select>
+                <button class="btn btn-sm btn-secondary" onclick="studyModeModule.setTimerMode(25, 5)"><i data-lucide="clock"></i> 25분 뽀모도로</button>
+                <button class="btn btn-sm btn-primary" onclick="studyModeModule.setTimerMode(50, 10)"><i data-lucide="zap"></i> 50분 딥포커스</button>
+              </div>
             </div>
-            <div class="banner-actions">
-              <button class="btn btn-secondary" onclick="studyModeModule.setTimerMode(25, 5)"><i data-lucide="clock"></i> 25분/5분 뽀모도로</button>
-              <button class="btn btn-primary" onclick="studyModeModule.setTimerMode(50, 10)"><i data-lucide="zap"></i> 50분/10분 딥포커스</button>
+
+            <!-- Flight Status Timeline Bar -->
+            <div style="margin-top:1rem; background:#1E293B; padding:1.1rem; border-radius:12px; border:1px solid #334155;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem;">
+                <div style="text-align:left;">
+                  <div style="font-size:1.6rem; font-weight:800; color:#38BDF8; font-family:'Outfit',sans-serif;" id="faOriginCode">ICN / RKSI</div>
+                  <div style="font-size:0.85rem; font-weight:700; color:#F1F5F9;" id="faOriginName">인천국제공항 (Seoul/Incheon)</div>
+                  <div style="font-size:0.75rem; color:#94A3B8; margin-top:0.2rem;">이륙 시각: <span style="color:#4ADE80; font-weight:700;" id="faDepTime">13:25 KST (정시 이륙)</span></div>
+                </div>
+
+                <!-- Flight Progress Bar -->
+                <div style="flex:1; min-width:240px; margin:0 1rem; text-align:center;">
+                  <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#94A3B8; margin-bottom:0.35rem;">
+                    <span id="faElapsedStr">비행 진행: <strong>0%</strong></span>
+                    <span id="faRemainingTimeStr" style="color:#F59E0B; font-weight:700;">⏳ 25분 00초 남음</span>
+                  </div>
+                  <div style="height:10px; background:#0F172A; border-radius:5px; overflow:hidden; position:relative; border:1px solid #475569;">
+                    <div id="faProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #38BDF8, #F59E0B); transition:width 0.5s; box-shadow:0 0 10px rgba(56,189,248,0.8);"></div>
+                  </div>
+                  <div style="font-size:0.72rem; color:#94A3B8; margin-top:0.35rem;" id="faDistanceStr">총 8,900 km 중 0 km 운항 완료</div>
+                </div>
+
+                <div style="text-align:right;">
+                  <div style="font-size:1.6rem; font-weight:800; color:#F59E0B; font-family:'Outfit',sans-serif;" id="faDestCode">CDG / LFPG</div>
+                  <div style="font-size:0.85rem; font-weight:700; color:#F1F5F9;" id="faDestName">파리 샤를드골 공항 (Paris CDG)</div>
+                  <div style="font-size:0.75rem; color:#94A3B8; margin-top:0.2rem;">도착 예정: <span style="color:#38BDF8; font-weight:700;" id="faArrTime">18:30 CET (정시 착륙 예정)</span></div>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="grid-2col">
-            <!-- Left Column: FocusFlight Boarding Pass Ticket & Controls -->
+            <!-- Left Column: FlightAware Radar Map & Waypoints -->
             <div class="left-stack">
-              <!-- Flight Ticket Boarding Pass Card (FocusFlight UI) -->
-              <div class="flight-ticket-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.15); padding-bottom:0.75rem; margin-bottom:0.85rem;">
-                  <div style="display:flex; align-items:center; gap:0.5rem;">
-                    <i data-lucide="ticket" style="color:var(--warning);"></i>
-                    <strong style="font-size:1.05rem; letter-spacing:1px; color:#fff;">BOARDING PASS</strong>
-                  </div>
-                  <span class="badge badge-primary">FocusFlight FL-808</span>
+              <div class="glass-card" style="background:#0F172A; border:1px solid #1E293B;">
+                <div class="card-header" style="border-bottom:1px solid #334155;">
+                  <h3><i data-lucide="map-pin" style="color:#38BDF8;"></i> FlightAware 라이브 항공 레이더 지도</h3>
+                  <span class="badge badge-accent">2D/3D Radar Map</span>
                 </div>
 
-                <!-- Flight Route Airport Codes -->
-                <div style="display:flex; justify-content:space-between; align-items:center; text-align:center; padding:0.5rem 0.5rem 0.8rem 0.5rem;">
+                <!-- FlightAware Radar Map Container -->
+                <div id="flightRouteMap" style="height:350px; width:100%; border-radius:var(--radius-md); overflow:hidden; border:1px solid #334155; position:relative; z-index:1;"></div>
+
+                <!-- Flight Telemetry Bar -->
+                <div style="display:flex; justify-content:space-around; align-items:center; margin-top:0.8rem; padding:0.6rem; background:#1E293B; border-radius:8px; border:1px solid #334155; font-size:0.8rem; text-align:center;">
                   <div>
-                    <div style="font-size:2.2rem; font-weight:800; font-family:'Outfit',sans-serif; color:#38BDF8; line-height:1;" id="ticketOriginCode">ICN</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;" id="ticketOriginName">Incheon (Seoul)</div>
+                    <div class="text-muted" style="font-size:0.7rem;">현재 고도 (Altitude)</div>
+                    <strong id="telemetryAlt" style="color:#38BDF8; font-size:0.95rem;">36,000 ft (10,972 m)</strong>
                   </div>
-                  <div style="display:flex; flex-direction:column; align-items:center; flex:1; padding:0 0.5rem;">
-                    <div style="font-size:0.7rem; color:var(--warning); font-weight:700;" id="ticketFlightTime">8h 45m Flight</div>
-                    <div style="width:100%; border-bottom:2px dashed var(--warning); position:relative; margin:0.4rem 0;">
-                      <span style="position:absolute; top:-10px; left:48%; color:var(--warning); font-size:16px;">✈️</span>
-                    </div>
-                    <div style="font-size:0.68rem; color:var(--text-muted);" id="telemetryDist">8,900 km</div>
+                  <div style="border-left:1px solid #334155; border-right:1px solid #334155; padding:0 0.8rem;">
+                    <div class="text-muted" style="font-size:0.7rem;">지상 속도 (Groundspeed)</div>
+                    <strong id="telemetrySpeed" style="color:#F59E0B; font-size:0.95rem;">880 km/h (475 kt)</strong>
                   </div>
                   <div>
-                    <div style="font-size:2.2rem; font-weight:800; font-family:'Outfit',sans-serif; color:#F59E0B; line-height:1;" id="ticketDestCode">CDG</div>
-                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem;" id="ticketDestName">Paris (Charles de Gaulle)</div>
+                    <div class="text-muted" style="font-size:0.7rem;">방위각 (Heading)</div>
+                    <strong style="color:#4ADE80; font-size:0.95rem;">285° (북서 NW)</strong>
                   </div>
                 </div>
+              </div>
 
-                <!-- Ticket Details & Controls Row -->
-                <div class="grid-2col" style="gap:0.75rem; background:rgba(0,0,0,0.3); padding:0.75rem; border-radius:var(--radius-md); margin-top:0.5rem;">
-                  <div class="input-group" style="margin:0;">
-                    <label class="form-label" style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">항로 선택</label>
-                    <select id="flightRouteSelect" class="form-control form-control-sm" onchange="studyModeModule.changeRoute(this.value)">
-                      <option value="icn_cdg" selected>ICN ✈️ CDG (파리)</option>
-                      <option value="icn_nrt">ICN ✈️ NRT (도쿄)</option>
-                      <option value="icn_jfk">ICN ✈️ JFK (뉴욕)</option>
-                      <option value="icn_lhr">ICN ✈️ LHR (런던)</option>
-                    </select>
-                  </div>
-                  <div class="input-group" style="margin:0;">
-                    <label class="form-label" style="font-size:0.72rem; color:var(--text-muted); font-weight:700;">집중 공부 과목</label>
-                    <select id="studySubjectSelect" class="form-control form-control-sm">
+              <!-- Flight Waypoint Progress Table (FlightAware Style) -->
+              <div class="glass-card" style="background:#0F172A; border:1px solid #1E293B;">
+                <div class="card-header" style="border-bottom:1px solid #334155;">
+                  <h3><i data-lucide="navigation"></i> 웨이포인트(Waypoint) 주요 항로 경유 일지</h3>
+                </div>
+                <div class="table-container">
+                  <table class="table" style="font-size:0.78rem;">
+                    <thead>
+                      <tr style="background:#1E293B; color:#94A3B8;">
+                        <th>웨이포인트</th>
+                        <th>위치 / 공항</th>
+                        <th>통과 시각</th>
+                        <th>고도</th>
+                        <th>상태</th>
+                      </tr>
+                    </thead>
+                    <tbody id="faWaypointTable">
+                      <!-- Injected by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Pomodoro Timer, Cabin ASMR & Study Log -->
+            <div class="right-stack">
+              <!-- Pomodoro Controls & Subject Selector -->
+              <div class="glass-card" style="text-align:center; background:#0F172A; border:1px solid #1E293B;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+                  <div style="display:flex; align-items:center; gap:0.4rem;">
+                    <label class="form-label" style="margin:0; font-weight:700; font-size:0.8rem; color:#94A3B8;">집중 과목:</label>
+                    <select id="studySubjectSelect" class="form-control form-control-sm" style="width:160px; background:#1E293B; color:#fff; border-color:#334155;">
                       <option value="자료구조 및 알고리즘" selected>자료구조 및 알고리즘</option>
                       <option value="운영체제">운영체제</option>
                       <option value="웹 프론트엔드 실습">웹 프론트엔드 실습</option>
@@ -949,70 +1016,34 @@
                       <option value="자율 학습 / 시험 공부">자율 학습 / 시험 공부</option>
                     </select>
                   </div>
-                </div>
-
-                <!-- Barcode & Gate Info -->
-                <div class="ticket-barcode-strip">
-                  <div style="font-size:0.72rem; color:var(--text-muted);">
-                    <div>SEAT: <strong style="color:#fff;">12A (Window)</strong></div>
-                    <div>PASSENGER: <strong style="color:#fff;" id="ticketPassengerName">김대학 학생</strong></div>
-                  </div>
-                  <div class="barcode-lines"></div>
-                </div>
-              </div>
-
-              <!-- Digital Clock Display & Main Controls -->
-              <div class="glass-card" style="text-align:center;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <span class="badge badge-accent" id="audioStatusBadge" onclick="studyModeModule.toggleAudio()" style="cursor:pointer;"><i data-lucide="volume-2"></i> ✈️ 기내 엔진 ASMR 재생</span>
-                  <div style="display:flex; align-items:center; gap:0.4rem; font-size:0.78rem; color:var(--text-muted);">
-                    <i data-lucide="volume-1"></i>
-                    <input type="range" min="0" max="1" step="0.05" value="0.3" style="width:90px;" oninput="studyModeModule.setVolume(this.value)">
+                  <div id="audioStatusBadge" class="badge badge-accent" style="cursor:pointer;" onclick="studyModeModule.toggleAudio()">
+                    <i data-lucide="volume-2"></i> ✈️ 기내 ASMR
                   </div>
                 </div>
 
-                <div id="pomodoroClockDisplay" class="pomodoro-clock">25:00</div>
+                <!-- Digital Clock -->
+                <div id="pomodoroClockDisplay" class="pomodoro-clock" style="color:#38BDF8; text-shadow:0 0 25px rgba(56,189,248,0.5);">25:00</div>
 
-                <div style="display:flex; justify-content:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.4rem;">
-                  <button id="startStudyBtn" class="btn btn-primary" onclick="studyModeModule.startTimer()"><i data-lucide="play"></i> 비행 출발 & 공부 시작</button>
+                <!-- Controls -->
+                <div style="display:flex; justify-content:center; gap:0.5rem; margin-top:0.6rem; flex-wrap:wrap;">
+                  <button id="startStudyBtn" class="btn btn-primary" onclick="studyModeModule.startTimer()"><i data-lucide="play"></i> 이륙 & 집중 시작</button>
                   <button id="pauseStudyBtn" class="btn btn-warning hidden" onclick="studyModeModule.pauseTimer()"><i data-lucide="pause"></i> 일시 정지</button>
                   <button class="btn btn-secondary" onclick="studyModeModule.resetTimer()"><i data-lucide="rotate-ccw"></i> 리셋</button>
-                  <button class="btn btn-success" onclick="studyModeModule.openFinishModal()"><i data-lucide="check-circle"></i> 비행 착륙 & 공부 일지 저장</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Right Column: Interactive Satellite Route Map & Globe + Study History -->
-            <div class="right-stack">
-              <div class="glass-card">
-                <div class="card-header">
-                  <h3><i data-lucide="globe"></i> 실시간 3D 지구본 항로 지도 (FocusFlight Satellite)</h3>
-                  <span class="badge badge-primary">실시간 비행 추적 중</span>
+                  <button class="btn btn-success" onclick="studyModeModule.openFinishModal()"><i data-lucide="check-circle"></i> 착륙 & 공부 일지 저장</button>
                 </div>
 
-                <!-- Satellite Map Container -->
-                <div id="flightRouteMap" style="height:320px; width:100%; border-radius:var(--radius-md); overflow:hidden; border:1px solid var(--border-color); position:relative; z-index:1;"></div>
-
-                <div style="display:flex; justify-content:space-around; align-items:center; margin-top:0.75rem; font-size:0.78rem; text-align:center;">
-                  <div>
-                    <div class="text-muted">현재 순항 고도</div>
-                    <strong id="telemetryAlt" style="color:var(--primary);">36,000 ft</strong>
-                  </div>
-                  <div style="border-left:1px solid var(--border-color); border-right:1px solid var(--border-color); padding:0 0.8rem;">
-                    <div class="text-muted">비행 속도</div>
-                    <strong id="telemetrySpeed" style="color:var(--warning);">880 km/h</strong>
-                  </div>
-                  <div>
-                    <div class="text-muted">현재 비행 구간</div>
-                    <strong id="routeTitleText" style="color:var(--success);">인천(ICN) ✈️ 파리(CDG)</strong>
-                  </div>
+                <!-- Volume Slider -->
+                <div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; margin-top:0.9rem; font-size:0.78rem; color:#94A3B8;">
+                  <i data-lucide="volume-1"></i>
+                  <span>기내 엔진 소음 볼륨:</span>
+                  <input type="range" min="0" max="1" step="0.05" value="0.3" style="width:110px;" oninput="studyModeModule.setVolume(this.value)">
                 </div>
               </div>
 
               <!-- Study History Logs -->
-              <div class="glass-card">
-                <div class="card-header">
-                  <h3><i data-lucide="book-open"></i> 최근 비행 공부 기록 & 달성 성과 일지</h3>
+              <div class="glass-card" style="background:#0F172A; border:1px solid #1E293B;">
+                <div class="card-header" style="border-bottom:1px solid #334155;">
+                  <h3><i data-lucide="book-open" style="color:#F59E0B;"></i> 최근 비행 공부 기록 일지</h3>
                 </div>
                 <div id="studyLogList" class="study-log-list">
                   <!-- Injected by JS -->
@@ -1442,13 +1473,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260813_10"></script>
-  <script src="js/modules/semester.js?v=20260813_10"></script>
-  <script src="js/modules/exam.js?v=20260813_10"></script>
-  <script src="js/modules/projects.js?v=20260813_10"></script>
-  <script src="js/modules/admin.js?v=20260813_10"></script>
-  <script src="js/modules/studymode.js?v=20260813_10"></script>
-  <script src="js/app.js?v=20260813_10"></script>
+  <script src="js/modules/graduation.js?v=20260813_11"></script>
+  <script src="js/modules/semester.js?v=20260813_11"></script>
+  <script src="js/modules/exam.js?v=20260813_11"></script>
+  <script src="js/modules/projects.js?v=20260813_11"></script>
+  <script src="js/modules/admin.js?v=20260813_11"></script>
+  <script src="js/modules/studymode.js?v=20260813_11"></script>
+  <script src="js/app.js?v=20260813_11"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
