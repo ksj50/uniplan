@@ -43,7 +43,42 @@ const app = {
     }
   },
 
+  currentOnboardStep: 1,
+
+  goToOnboardStep(stepNum) {
+    this.currentOnboardStep = stepNum;
+    const step1 = document.getElementById('onboardStep1');
+    const step2 = document.getElementById('onboardStep2');
+    const bar1 = document.getElementById('onboardStep1Bar');
+    const bar2 = document.getElementById('onboardStep2Bar');
+    const sub = document.getElementById('onboardStepSub');
+
+    if (stepNum === 1) {
+      if (step1) step1.classList.remove('hidden');
+      if (step2) step2.classList.add('hidden');
+      if (bar1) bar1.style.background = 'var(--primary)';
+      if (bar2) bar2.style.background = 'var(--border-color)';
+      if (sub) sub.innerText = '1/2단계: 프로필 기본 정보 설정';
+    } else {
+      if (step1) step1.classList.add('hidden');
+      if (step2) step2.classList.remove('hidden');
+      if (bar1) bar1.style.background = 'var(--primary)';
+      if (bar2) bar2.style.background = 'var(--primary)';
+      if (sub) sub.innerText = '2/2단계: 내 졸업 요건 및 취득 상태 입력';
+    }
+    if (window.lucide) lucide.createIcons();
+  },
+
+  skipOnboarding() {
+    this.closeModal('onboardingModal');
+    const defaultProfile = { name: '김대학', univ: '동국대학교', grade: '3학년', major: '컴퓨터공학과', onboarded: true };
+    localStorage.setItem('uniplan_user_profile', JSON.stringify(defaultProfile));
+    this.applyUserProfile(defaultProfile);
+    this.showToast('기본 설정으로 플래너를 시작합니다. 언제든지 사이드바 프로필이나 [1. 졸업 요건 확인] 메뉴에서 수정하실 수 있습니다.', 'info');
+  },
+
   openOnboardingModal() {
+    this.goToOnboardStep(1);
     const modal = document.getElementById('onboardingModal');
     if (modal) modal.classList.remove('hidden');
 
@@ -93,12 +128,32 @@ const app = {
       return;
     }
 
-    const profile = { name, univ, grade, major, onboarded: true };
+    // Save Step 2 Graduation Requirements if entered
+    const reqTotal = document.getElementById('onboardReqTotalCredits') ? parseInt(document.getElementById('onboardReqTotalCredits').value) || 130 : 130;
+    const reqAcquired = document.getElementById('onboardAcquiredTotalCredits') ? parseInt(document.getElementById('onboardAcquiredTotalCredits').value) || 75 : 75;
+    const reqMajor = document.getElementById('onboardReqMajorCredits') ? parseInt(document.getElementById('onboardReqMajorCredits').value) || 60 : 60;
+    const reqGeneral = document.getElementById('onboardReqGeneralCredits') ? parseInt(document.getElementById('onboardReqGeneralCredits').value) || 30 : 30;
+    const reqLang = document.getElementById('onboardReqLang') ? document.getElementById('onboardReqLang').value : 'TOEIC 750점 이상';
+    const reqVolunteer = document.getElementById('onboardReqVolunteer') ? document.getElementById('onboardReqVolunteer').value : '30시간 이상';
+
+    if (window.graduationModule) {
+      graduationModule.requirements.totalCredits = reqTotal;
+      graduationModule.requirements.majorCredits = reqMajor;
+      graduationModule.requirements.generalCredits = reqGeneral;
+      graduationModule.requirements.language = reqLang;
+      graduationModule.requirements.volunteer = reqVolunteer;
+      graduationModule.userStatus.totalCredits = reqAcquired;
+      if (typeof graduationModule.renderGraduationTable === 'function') {
+        graduationModule.renderGraduationTable();
+      }
+    }
+
+    const profile = { name, univ, grade, major, reqTotal, reqAcquired, onboarded: true };
     localStorage.setItem('uniplan_user_profile', JSON.stringify(profile));
 
     this.applyUserProfile(profile);
     this.closeModal('onboardingModal');
-    this.showToast(`[${name}]님 환영합니다! ${univ} ${major} ${grade} 정보로 플래너가 초기화되었습니다.`, 'success');
+    this.showToast(`[${name}]님 환영합니다! ${univ} ${major} ${grade} & 졸업 요건 설정이 완료되었습니다.`, 'success');
   },
 
   applyUserProfile(p) {
