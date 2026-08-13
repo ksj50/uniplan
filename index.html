@@ -43,12 +43,13 @@
         </div>
       </div>
 
-      <div class="user-profile-widget">
-        <div class="avatar">김대학</div>
+      <div class="user-profile-widget" onclick="app.openOnboardingModal()" title="클릭하여 내 정보 (학교, 전공, 학년, 이름) 수정하기" style="cursor:pointer;">
+        <div class="avatar" id="userProfileAvatar">김대학</div>
         <div class="user-info">
-          <div class="user-name">김대학 학생</div>
-          <div class="user-dept" id="userUnivProfileBadge">컴퓨터공학과 3학년</div>
+          <div class="user-name" id="userProfileName">김대학 학생</div>
+          <div class="user-dept" id="userUnivProfileBadge">동국대학교 컴퓨터공학과 3학년</div>
         </div>
+        <i data-lucide="edit-3" style="font-size:0.8rem; color:var(--text-muted); margin-left:auto;"></i>
       </div>
 
       <nav class="sidebar-nav">
@@ -907,6 +908,74 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="app.closeModal('inquiryModal')">취소</button>
         <button class="btn btn-primary" onclick="app.submitUserInquiry()">문의 전송</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- First-time Onboarding Modal -->
+  <div id="onboardingModal" class="modal-backdrop hidden">
+    <div class="modal-box" style="max-width:480px; border:2px solid var(--primary); box-shadow:0 10px 40px rgba(99, 102, 241, 0.3);">
+      <div class="modal-header" style="border-bottom:1px solid var(--border-color); padding-bottom:0.8rem; margin-bottom:1.2rem;">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <div style="width:36px; height:36px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.2rem;">
+            <i data-lucide="graduation-cap"></i>
+          </div>
+          <div>
+            <h3 style="margin:0; font-weight:800; font-size:1.15rem; color:var(--text-main);">UniPlan 시작하기</h3>
+            <p style="margin:0; font-size:0.75rem; color:var(--text-muted);">통합 대학 생활 플랜 서비스를 위한 기초 정보를 입력해주세요.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:1rem;">
+        <div class="input-group">
+          <label class="form-label" style="font-weight:700;"><i data-lucide="user"></i> 이름 (학생 성명) <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="onboardName" class="form-control" placeholder="예: 홍길동" value="김대학">
+        </div>
+
+        <div class="input-group">
+          <label class="form-label" style="font-weight:700;"><i data-lucide="building"></i> 소속 대학교 <span style="color:var(--danger)">*</span></label>
+          <select id="onboardUniv" class="form-control" onchange="app.handleOnboardUnivChange(this.value)">
+            <option value="동국대학교">동국대학교 (서울)</option>
+            <option value="서울대학교">서울대학교</option>
+            <option value="연세대학교">연세대학교</option>
+            <option value="고려대학교">고려대학교</option>
+            <option value="한국항공대학교">한국항공대학교</option>
+            <option value="건국대학교">건국대학교</option>
+            <option value="서울과학기술대학교">서울과학기술대학교</option>
+            <option value="홍익대학교">홍익대학교</option>
+            <option value="성균관대학교">성균관대학교</option>
+            <option value="한양대학교">한양대학교</option>
+            <option value="경희대학교">경희대학교</option>
+            <option value="서강대학교">서강대학교</option>
+            <option value="중앙대학교">중앙대학교</option>
+            <option value="KAIST">KAIST (대전)</option>
+            <option value="POSTECH">POSTECH (포항)</option>
+            <option value="custom">기타 대학교 직접 입력...</option>
+          </select>
+          <input type="text" id="onboardCustomUniv" class="form-control mt-2 hidden" placeholder="학교 이름을 입력하세요 (예: 단국대학교)">
+        </div>
+
+        <div class="grid-2col" style="gap:0.75rem;">
+          <div class="input-group">
+            <label class="form-label" style="font-weight:700;"><i data-lucide="award"></i> 학년 <span style="color:var(--danger)">*</span></label>
+            <select id="onboardGrade" class="form-control">
+              <option value="1학년">1학년</option>
+              <option value="2학년">2학년</option>
+              <option value="3학년" selected>3학년</option>
+              <option value="4학년">4학년</option>
+              <option value="4학년 이상(유예/휴학)">4학년 이상(유예/휴학)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label class="form-label" style="font-weight:700;"><i data-lucide="book-open"></i> 전공/학과 <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="onboardMajor" class="form-control" placeholder="예: 컴퓨터공학과" value="컴퓨터공학과">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top:1.2rem;">
+        <button class="btn btn-primary w-full" style="padding:0.75rem; font-size:0.95rem; font-weight:700;" onclick="app.saveOnboardingProfile()">
+          <i data-lucide="sparkles"></i> 설정 완료하고 플래너 시작하기
+        </button>
       </div>
     </div>
   </div>

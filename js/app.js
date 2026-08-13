@@ -23,7 +23,100 @@ const app = {
     if (window.adminModule) adminModule.init();
 
     this.renderNotifications();
+    this.checkOnboarding();
     console.log('UniPlan Application Initialized Successfully.');
+  },
+
+  checkOnboarding() {
+    const saved = localStorage.getItem('uniplan_user_profile');
+    if (!saved) {
+      setTimeout(() => {
+        this.openOnboardingModal();
+      }, 600);
+    } else {
+      try {
+        const profile = JSON.parse(saved);
+        this.applyUserProfile(profile);
+      } catch (e) {
+        console.error('Profile load error:', e);
+      }
+    }
+  },
+
+  openOnboardingModal() {
+    const modal = document.getElementById('onboardingModal');
+    if (modal) modal.classList.remove('hidden');
+
+    const saved = localStorage.getItem('uniplan_user_profile');
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (document.getElementById('onboardName')) document.getElementById('onboardName').value = p.name || '';
+        if (document.getElementById('onboardUniv')) document.getElementById('onboardUniv').value = p.univ || '동국대학교';
+        if (document.getElementById('onboardGrade')) document.getElementById('onboardGrade').value = p.grade || '3학년';
+        if (document.getElementById('onboardMajor')) document.getElementById('onboardMajor').value = p.major || '컴퓨터공학과';
+      } catch (e) {}
+    }
+    if (window.lucide) lucide.createIcons();
+  },
+
+  handleOnboardUnivChange(val) {
+    const customInput = document.getElementById('onboardCustomUniv');
+    if (val === 'custom') {
+      if (customInput) customInput.classList.remove('hidden');
+    } else {
+      if (customInput) customInput.classList.add('hidden');
+    }
+  },
+
+  saveOnboardingProfile() {
+    const nameEl = document.getElementById('onboardName');
+    const univSelect = document.getElementById('onboardUniv');
+    const customUnivEl = document.getElementById('onboardCustomUniv');
+    const gradeEl = document.getElementById('onboardGrade');
+    const majorEl = document.getElementById('onboardMajor');
+
+    const name = nameEl ? nameEl.value.trim() : '김대학';
+    let univ = univSelect ? univSelect.value : '동국대학교';
+    if (univ === 'custom') {
+      univ = customUnivEl && customUnivEl.value.trim() ? customUnivEl.value.trim() : '직접입력대학교';
+    }
+    const grade = gradeEl ? gradeEl.value : '3학년';
+    const major = majorEl ? majorEl.value.trim() : '컴퓨터공학과';
+
+    if (!name) {
+      this.showToast('이름을 입력해 주세요!', 'warning');
+      return;
+    }
+    if (!major) {
+      this.showToast('전공/학과를 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const profile = { name, univ, grade, major, onboarded: true };
+    localStorage.setItem('uniplan_user_profile', JSON.stringify(profile));
+
+    this.applyUserProfile(profile);
+    this.closeModal('onboardingModal');
+    this.showToast(`[${name}]님 환영합니다! ${univ} ${major} ${grade} 정보로 플래너가 초기화되었습니다.`, 'success');
+  },
+
+  applyUserProfile(p) {
+    if (!p) return;
+    const avatarEl = document.getElementById('userProfileAvatar');
+    const nameEl = document.getElementById('userProfileName');
+    const badgeEl = document.getElementById('userUnivProfileBadge');
+
+    if (avatarEl) avatarEl.innerText = p.name ? p.name.substring(0, 2) : '김대';
+    if (nameEl) nameEl.innerText = `${p.name} 학생`;
+    if (badgeEl) badgeEl.innerText = `${p.univ} ${p.major} ${p.grade}`;
+
+    // Sync with university maps and dropdowns
+    if (window.projectsModule && p.univ) {
+      const select = document.getElementById('userUniversitySelect');
+      if (select) select.value = p.univ;
+      projectsModule.setUniversity(p.univ);
+    }
   },
 
   requestNotificationPermission() {
