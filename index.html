@@ -241,9 +241,9 @@
               <p>현재 상태를 등록하고 졸업에 필요한 충족/미충족 항목을 확인하세요. AI 추천 졸업 플랜 3종을 생성할 수 있습니다.</p>
             </div>
             <div class="banner-actions">
-              <button id="editGradReqBtn" class="btn btn-secondary"><i data-lucide="edit-3"></i> 요건 기준 수정</button>
-              <button id="updateUserStatusBtn" class="btn btn-primary"><i data-lucide="user-check"></i> 내 성적/상태 업데이트</button>
-              <button id="gen3PlansBtn" class="btn btn-gradient"><i data-lucide="sparkles"></i> 3가지 추천 플랜 생성</button>
+              <button id="editGradReqBtn" class="btn btn-secondary" onclick="app.openOnboardingModal()"><i data-lucide="edit-3"></i> 요건 기준 수정</button>
+              <button id="updateUserStatusBtn" class="btn btn-primary" onclick="app.openOnboardingModal()"><i data-lucide="user-check"></i> 내 성적/상태 업데이트</button>
+              <button id="gen3PlansBtn" class="btn btn-gradient" onclick="graduationModule.generate3Plans()"><i data-lucide="sparkles"></i> 3가지 추천 플랜 생성</button>
             </div>
           </div>
 
@@ -261,7 +261,7 @@
             <div class="glass-card">
               <div class="card-header">
                 <h3>충족 / 미충족 요건 리스트</h3>
-                <button id="flagUncertainBtn" class="btn btn-sm btn-outline-warning"><i data-lucide="help-circle"></i> 불확실 항목 재확인 요청</button>
+                <button id="flagUncertainBtn" class="btn btn-sm btn-outline-warning" onclick="graduationModule.verifyUncertainItem('capstone')"><i data-lucide="help-circle"></i> 불확실 항목 재확인 요청</button>
               </div>
               <div class="table-container">
                 <table class="custom-table" id="gradRequirementsTable">
@@ -310,9 +310,9 @@
               <p>수업 전, 연강, 공강, 오늘의 마지막 수업 알림과 과제 마감 알림, 영상 강의 수강 목적 관리를 한번에 진행합니다.</p>
             </div>
             <div class="banner-actions">
-              <button id="addClassBtn" class="btn btn-secondary"><i data-lucide="plus"></i> 수업 추가</button>
-              <button id="addAssignmentBtn" class="btn btn-primary"><i data-lucide="file-plus"></i> 과제 추가</button>
-              <button id="addVideoBtn" class="btn btn-accent"><i data-lucide="video-plus"></i> 영상 강의 업로드 등록</button>
+              <button id="addClassBtn" class="btn btn-secondary" onclick="app.openModal('addClassModal')"><i data-lucide="plus"></i> 수업 추가</button>
+              <button id="addAssignmentBtn" class="btn btn-primary" onclick="app.openModal('addAssignmentModal')"><i data-lucide="file-plus"></i> 과제 추가</button>
+              <button id="addVideoBtn" class="btn btn-accent" onclick="app.openModal('addVideoModal')"><i data-lucide="video-plus"></i> 영상 강의 업로드 등록</button>
             </div>
           </div>
 
@@ -373,8 +373,8 @@
               <p>확정 시험 일정 등록, 시험 범위 N회독 체크리스트, 타이머 및 개념 노트 사진을 PDF로 자동 변환 정리하세요.</p>
             </div>
             <div class="banner-actions">
-              <button id="addExamBtn" class="btn btn-secondary"><i data-lucide="calendar-plus"></i> 시험 일정 등록/확정</button>
-              <button id="addNoteBtn" class="btn btn-primary"><i data-lucide="file-text"></i> 개념 정리 & 사진 PDF 변환</button>
+              <button id="addExamBtn" class="btn btn-secondary" onclick="app.openModal('addExamModal')"><i data-lucide="calendar-plus"></i> 시험 일정 등록/확정</button>
+              <button id="addNoteBtn" class="btn btn-primary" onclick="app.openModal('addNoteModal')"><i data-lucide="file-text"></i> 개념 정리 & 사진 PDF 변환</button>
             </div>
           </div>
 
