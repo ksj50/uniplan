@@ -2,7 +2,7 @@
  * Module 6: Additional Features - Admin Portal & Security Vault
  */
 const adminModule = {
-  adminPassword: 'admin1234',
+  adminPassword: '0154',
   isAuthenticated: false,
   usageChart: null,
   activityChart: null,

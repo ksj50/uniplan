@@ -779,7 +779,7 @@
               <h2>관리자 전용 접근 보호</h2>
               <p>관리자 비밀번호를 입력해야 현황 확인 및 보안 설정 변경이 가능합니다.</p>
               <div class="input-group mt-3">
-                <input type="password" id="adminPasswordInput" class="form-control" placeholder="비밀번호 입력 (기본: admin1234)" onkeypress="if(event.key==='Enter') adminModule.login()">
+                <input type="password" id="adminPasswordInput" class="form-control" placeholder="관리자 비밀번호 입력" onkeypress="if(event.key==='Enter') adminModule.login()">
                 <button id="adminLoginBtn" class="btn btn-primary" onclick="adminModule.login()"><i data-lucide="key"></i> 관리자 로그인</button>
               </div>
               <p id="adminAuthErr" class="auth-err-msg hidden">비밀번호가 올바르지 않습니다.</p>
@@ -1411,13 +1411,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260813_08"></script>
-  <script src="js/modules/semester.js?v=20260813_08"></script>
-  <script src="js/modules/exam.js?v=20260813_08"></script>
-  <script src="js/modules/projects.js?v=20260813_08"></script>
-  <script src="js/modules/admin.js?v=20260813_08"></script>
-  <script src="js/modules/studymode.js?v=20260813_08"></script>
-  <script src="js/app.js?v=20260813_08"></script>
+  <script src="js/modules/graduation.js?v=20260813_09"></script>
+  <script src="js/modules/semester.js?v=20260813_09"></script>
+  <script src="js/modules/exam.js?v=20260813_09"></script>
+  <script src="js/modules/projects.js?v=20260813_09"></script>
+  <script src="js/modules/admin.js?v=20260813_09"></script>
+  <script src="js/modules/studymode.js?v=20260813_09"></script>
+  <script src="js/app.js?v=20260813_09"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
