@@ -24,17 +24,28 @@ const semesterModule = {
     { id: 'v3', subject: '웹 프론트엔드 실습', title: '[실습] React State & Lifecycle 완벽 정리', uploadDate: '2026-08-13', watchCount: 2, purpose: '복습', alertTriggered: false }
   ],
 
+  classScheduleRows: [
+    { id: 1, day: '월', startTime: '10:00', endTime: '12:00', room: '공학관 301호' },
+    { id: 2, day: '수', startTime: '14:00', endTime: '16:00', room: '정보관 202호' }
+  ],
+
   init() {
     this.renderTimetable();
     this.renderAssignments();
     this.renderVideos();
     this.renderDashboardSchedule();
     this.setupButtonListeners();
+    this.renderClassScheduleRows();
   },
 
   setupButtonListeners() {
     const classBtn = document.getElementById('addClassBtn');
-    if (classBtn) classBtn.onclick = () => app.openModal('addClassModal');
+    if (classBtn) {
+      classBtn.onclick = () => {
+        this.renderClassScheduleRows();
+        app.openModal('addClassModal');
+      };
+    }
 
     const assignBtn = document.getElementById('addAssignmentBtn');
     if (assignBtn) assignBtn.onclick = () => app.openModal('addAssignmentModal');
@@ -43,33 +54,85 @@ const semesterModule = {
     if (videoBtn) videoBtn.onclick = () => app.openModal('addVideoModal');
   },
 
+  renderClassScheduleRows() {
+    const container = document.getElementById('classScheduleRowsContainer');
+    if (!container) return;
+
+    container.innerHTML = this.classScheduleRows.map((row, idx) => `
+      <div class="schedule-row-item" style="display:flex; align-items:center; gap:0.5rem; background:rgba(255,255,255,0.05); padding:0.5rem 0.75rem; border-radius:var(--radius-sm); border:1px solid var(--border-color);">
+        <span style="font-weight:700; font-size:0.8rem; min-width:45px; color:var(--text-main);">${idx + 1}회차:</span>
+        <select class="form-control form-control-sm row-day" style="width:75px;">
+          <option value="월" ${row.day === '월' ? 'selected' : ''}>월요일</option>
+          <option value="화" ${row.day === '화' ? 'selected' : ''}>화요일</option>
+          <option value="수" ${row.day === '수' ? 'selected' : ''}>수요일</option>
+          <option value="목" ${row.day === '목' ? 'selected' : ''}>목요일</option>
+          <option value="금" ${row.day === '금' ? 'selected' : ''}>금요일</option>
+        </select>
+        <input type="time" class="form-control form-control-sm row-start" value="${row.startTime}" style="width:95px;">
+        <span style="font-size:0.8rem;">~</span>
+        <input type="time" class="form-control form-control-sm row-end" value="${row.endTime}" style="width:95px;">
+        <input type="text" class="form-control form-control-sm row-room" value="${row.room}" placeholder="강의실 (예: 공학관 301호)" style="flex:1;">
+        ${this.classScheduleRows.length > 1 ? `<button class="btn btn-xs btn-outline-danger" title="일정 삭제" onclick="semesterModule.removeClassScheduleRow(${idx})">&times;</button>` : ''}
+      </div>
+    `).join('');
+  },
+
+  addClassScheduleRow() {
+    const nextIdx = this.classScheduleRows.length + 1;
+    this.classScheduleRows.push({
+      id: Date.now(),
+      day: nextIdx % 2 === 0 ? '수' : '월',
+      startTime: '13:00',
+      endTime: '15:00',
+      room: '공학관 강의실'
+    });
+    this.renderClassScheduleRows();
+  },
+
+  removeClassScheduleRow(idx) {
+    if (this.classScheduleRows.length <= 1) return;
+    this.classScheduleRows.splice(idx, 1);
+    this.renderClassScheduleRows();
+  },
+
   saveNewClass() {
     const name = document.getElementById('newClassName').value.trim();
-    const day = document.getElementById('newClassDay').value;
-    const startTime = document.getElementById('newClassStartTime').value;
-    const endTime = document.getElementById('newClassEndTime').value;
     const prof = document.getElementById('newClassProf').value.trim() || '담당교수';
-    const room = document.getElementById('newClassRoom').value.trim() || '강의실';
 
     if (!name) {
-      app.showToast('수업 이름을 입력해 주세요!', 'warning');
+      app.showToast('교과목 이름을 입력해 주세요!', 'warning');
       return;
     }
 
-    this.timetable.push({
-      id: 'c' + Date.now(),
-      name: name,
-      day: day,
-      startTime: startTime,
-      endTime: endTime,
-      room: room,
-      professor: prof
+    const rowEls = document.querySelectorAll('#classScheduleRowsContainer .schedule-row-item');
+    if (rowEls.length === 0) {
+      app.showToast('최하 1개 이상의 수업 일정을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    let addedCount = 0;
+    rowEls.forEach((rowEl, idx) => {
+      const day = rowEl.querySelector('.row-day').value;
+      const startTime = rowEl.querySelector('.row-start').value;
+      const endTime = rowEl.querySelector('.row-end').value;
+      const room = rowEl.querySelector('.row-room').value.trim() || '강의실';
+
+      this.timetable.push({
+        id: 'c_' + Date.now() + '_' + idx,
+        name: name,
+        day: day,
+        startTime: startTime,
+        endTime: endTime,
+        room: room,
+        professor: prof
+      });
+      addedCount++;
     });
 
     this.renderTimetable();
     this.renderDashboardSchedule();
     app.closeModal('addClassModal');
-    app.showToast(`신규 수업 [${name}] (${day}요일 ${startTime}~${endTime}) 등록 완료!`, 'success');
+    app.showToast(`[${name}] 주 ${addedCount}회 반복 수업 일정 및 강의실이 성공적으로 등록되었습니다!`, 'success');
   },
 
   saveNewAssignment() {
