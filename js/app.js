@@ -257,14 +257,10 @@ const app = {
     }
 
     if (viewId === 'studymode' && window.studyModeModule) {
-      studyModeModule.initFlightMap();
-      [50, 200, 400, 800, 1500].forEach(delay => {
-        setTimeout(() => {
-          if (studyModeModule.flightMap) {
-            studyModeModule.flightMap.invalidateSize();
-          }
-        }, delay);
-      });
+      // Delay to ensure section is fully visible (display:block) before Leaflet init
+      setTimeout(() => {
+        studyModeModule.initFlightMap();
+      }, 100);
     }
   },
 

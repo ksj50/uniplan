@@ -132,7 +132,6 @@ const studyModeModule = {
     this.renderStudyLogs();
     this.setupListeners();
     this.updateTimerDisplay();
-    this.setupMapObserver();
   },
 
   setupListeners() {
@@ -144,61 +143,58 @@ const studyModeModule = {
     }
   },
 
-  setupMapObserver() {
-    const container = document.getElementById('flightRouteMap');
-    if (!container || this.observerInitialized) return;
-    this.observerInitialized = true;
-
-    if (window.IntersectionObserver) {
-      const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            this.initFlightMap();
-          }
-        });
-      }, { threshold: 0.05 });
-      observer.observe(container);
-    }
-  },
-
   // ---------------- REALTIME SATELLITE FLIGHT RADAR MAP ----------------
   initFlightMap() {
     const container = document.getElementById('flightRouteMap');
     if (!container) return;
 
+    // CRITICAL FIX: Leaflet cannot render in display:none containers.
+    // Completely destroy and recreate the map every time the tab becomes visible.
     if (this.flightMap) {
-      [50, 200, 500, 1000].forEach(delay => {
-        setTimeout(() => {
-          if (this.flightMap) this.flightMap.invalidateSize();
-        }, delay);
-      });
-      return;
+      try {
+        this.flightMap.remove();
+      } catch (e) {}
+      this.flightMap = null;
+      this.flightPathPolyline = null;
+      this.airplaneMarker = null;
     }
 
-    // FlightAware Radar Tile Map with Esri World Satellite / Dark theme
-    this.flightMap = L.map('flightRouteMap', { zoomControl: true }).setView([45.0, 50.0], 2);
+    // Clear any leftover Leaflet DOM to prevent "Map already initialized" errors
+    container.innerHTML = '';
 
-    // Primary Esri World Imagery Satellite Tile Layer
-    const esriTile = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 18,
-      attribution: '&copy; FlightAware Radar &copy; Esri World Imagery'
-    });
+    // Create map ONLY when the container is confirmed visible (display:block, width > 0)
+    const createMap = () => {
+      if (container.clientWidth < 10) {
+        // Container still hidden, retry
+        setTimeout(createMap, 100);
+        return;
+      }
 
-    // Fallback CartoDB Dark / OSM Tile Layer
-    const darkTile = L.tileLayer('https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; FlightAware Radar &copy; CARTO &copy; OpenStreetMap'
-    });
+      this.flightMap = L.map(container, {
+        zoomControl: true,
+        attributionControl: true
+      }).setView([45.0, 50.0], 2);
 
-    esriTile.addTo(this.flightMap);
+      // Use OpenStreetMap tiles - the most universally reliable tile server
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | FlightAware Radar'
+      }).addTo(this.flightMap);
 
-    this.drawRoute();
+      this.drawRoute();
 
-    [100, 300, 600, 1200].forEach(delay => {
-      setTimeout(() => {
-        if (this.flightMap) this.flightMap.invalidateSize();
-      }, delay);
-    });
+      // Force multiple invalidateSize to guarantee tile rendering
+      [100, 300, 600, 1000, 2000].forEach(delay => {
+        setTimeout(() => {
+          if (this.flightMap) {
+            this.flightMap.invalidateSize();
+          }
+        }, delay);
+      });
+    };
+
+    // Start with a small delay to let CSS transitions complete
+    setTimeout(createMap, 50);
   },
 
   changeRoute(routeKey) {
