@@ -36,6 +36,12 @@ const semesterModule = {
     this.renderDashboardSchedule();
     this.setupButtonListeners();
     this.renderClassScheduleRows();
+
+    if (!this.assignmentTicker) {
+      this.assignmentTicker = setInterval(() => {
+        this.renderAssignments();
+      }, 30000);
+    }
   },
 
   setupButtonListeners() {
@@ -351,22 +357,58 @@ const semesterModule = {
     if (window.lucide) lucide.createIcons();
   },
 
+  calcRemainingTimeStr(deadlineStr) {
+    if (!deadlineStr) return '마감 시간 정보 없음';
+
+    const targetDate = new Date(deadlineStr.replace(' ', 'T'));
+    const now = new Date();
+    const diffMs = targetDate - now;
+
+    if (isNaN(targetDate.getTime()) || diffMs <= 0) {
+      return '마감 시간 종료 (00시간00분 남음)';
+    }
+
+    const totalMinutes = Math.floor(diffMs / (1000 * 60));
+    const days = Math.floor(totalMinutes / (60 * 24));
+    const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+    const minutes = totalMinutes % 60;
+
+    const pad = (n) => n < 10 ? '0' + n : '' + n;
+
+    if (days > 0) {
+      return `${days}일 ${pad(hours)}시간 ${pad(minutes)}분 남음`;
+    } else {
+      return `${pad(hours)}시간 ${pad(minutes)}분 남음`;
+    }
+  },
+
   renderAssignments() {
     const container = document.getElementById('assignmentList');
     if (!container) return;
 
-    container.innerHTML = this.assignments.map(a => `
-      <div class="activity-card" style="margin-bottom:0.6rem;">
-        <div class="activity-main">
-          <div class="title" style="font-size:0.9rem;">[${a.subject}] ${a.title}</div>
-          <div class="summary" style="color:var(--danger);">마감일: ${a.deadline}</div>
-          <div class="activity-meta">
-            <span class="badge badge-danger">24h / 12h / 6h / 1h 알림 활성</span>
-            <span class="text-xs text-muted">${a.alertSent}</span>
+    container.innerHTML = this.assignments.map(a => {
+      const remainingStr = this.calcRemainingTimeStr(a.deadline);
+      const isExpired = remainingStr.includes('종료');
+
+      return `
+        <div class="activity-card" style="margin-bottom:0.6rem; ${isExpired ? 'border-left: 4px solid var(--danger); opacity:0.85;' : 'border-left: 4px solid var(--warning);'}">
+          <div class="activity-main">
+            <div class="title" style="font-size:0.92rem; font-weight:700;">[${a.subject}] ${a.title}</div>
+            <div class="summary" style="color:var(--danger); margin-top:0.2rem;">마감일: ${a.deadline}</div>
+            <div style="font-size:0.85rem; font-weight:800; color:${isExpired ? 'var(--danger)' : '#F59E0B'}; margin:0.3rem 0 0.4rem 0; display:flex; align-items:center; gap:0.35rem;">
+              <i data-lucide="clock" style="width:15px; height:15px;"></i>
+              <span>${remainingStr}</span>
+            </div>
+            <div class="activity-meta">
+              <span class="badge badge-danger">24h / 12h / 6h / 1h 알림 활성</span>
+              <span class="text-xs text-muted">${a.alertSent}</span>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
   },
 
   renderVideos() {
