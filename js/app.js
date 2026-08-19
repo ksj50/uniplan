@@ -252,6 +252,10 @@ const app = {
     document.getElementById('pageTitle').innerText = info.title;
     document.getElementById('pageSubtitle').innerText = info.sub;
 
+    if (viewId === 'dashboard' && window.examModule) {
+      examModule.renderDashboardExamWidget();
+    }
+
     if (viewId === 'exam' && window.examModule) {
       examModule.populateSubjectSelect();
       examModule.renderExamCalendar();

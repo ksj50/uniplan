@@ -52,6 +52,9 @@ const examModule = {
   calendarYear: 2026,
   calendarMonth: 7, // August (0-indexed)
 
+  dashboardCalYear: 2026,
+  dashboardCalMonth: 7, // August for dashboard mini calendar
+
   koreanHolidays: {
     '2026-01-01': { name: '신정', isRed: true },
     '2026-02-16': { name: '설날연휴', isRed: true },
@@ -74,6 +77,7 @@ const examModule = {
 
   init() {
     this.renderFirstExamHero();
+    this.renderDashboardExamWidget();
     this.renderExamCalendar();
     this.renderSubjectList();
     this.populateSubjectSelect();
@@ -184,19 +188,192 @@ const examModule = {
       ddayEl.innerText = this.formatCountdown(first.examDate);
     }
 
+    this.renderDashboardExamWidget();
+  },
+
+  changeDashboardExamMonth(delta) {
+    this.dashboardCalMonth += delta;
+    if (this.dashboardCalMonth < 0) {
+      this.dashboardCalMonth = 11;
+      this.dashboardCalYear--;
+    } else if (this.dashboardCalMonth > 11) {
+      this.dashboardCalMonth = 0;
+      this.dashboardCalYear++;
+    }
+    this.renderDashboardExamWidget();
+  },
+
+  goToTodayDashboardExam() {
+    this.dashboardCalYear = 2026;
+    this.dashboardCalMonth = 7;
+    this.renderDashboardExamWidget();
+  },
+
+  renderDashboardExamWidget() {
     const dashboardEl = document.getElementById('dashboardExamCountdown');
-    if (dashboardEl && first) {
-      dashboardEl.innerHTML = `
-        <div style="text-align:center; padding: 0.5rem 0;">
-          <span class="badge badge-danger" style="margin-bottom:0.4rem; font-size:0.8rem;">D-Day D-3</span>
-          <h4 style="font-size:1.2rem; font-weight:700;">${first.name}</h4>
-          <div style="font-size:1.6rem; font-weight:800; color:#FCA5A5; font-family:'Outfit',sans-serif; margin-top:0.3rem;">
-            ${this.formatCountdown(first.examDate)}
+    if (!dashboardEl) return;
+
+    const sorted = [...this.subjects].sort((a, b) => new Date(a.examDate) - new Date(b.examDate));
+    const first = sorted[0];
+
+    const year = this.dashboardCalYear;
+    const month = this.dashboardCalMonth;
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0=Sun, 1=Mon...
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const prevLastDate = new Date(year, month, 0).getDate();
+
+    let calGridHtml = '';
+
+    // 1. Previous Month Spillover Days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const prevDay = prevLastDate - i;
+      const prevDateObj = new Date(year, month - 1, prevDay);
+      const prevDayOfWeek = prevDateObj.getDay();
+      const numClass = prevDayOfWeek === 0 ? 'sun' : prevDayOfWeek === 6 ? 'sat' : '';
+      const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(prevDay).padStart(2, '0')}`;
+      const holiday = this.koreanHolidays[dateKey];
+
+      calGridHtml += `
+        <div class="calendar-day-cell other-month">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${numClass}">${prevDay}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
           </div>
-          <span class="text-xs text-muted">알림: 3일/1일/15시간/3시간/1시간전 자동 전송</span>
         </div>
       `;
     }
+
+    // 2. Current Month Days
+    for (let day = 1; day <= lastDate; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const currDateObj = new Date(year, month, day);
+      const dayOfWeek = currDateObj.getDay();
+      const numClass = dayOfWeek === 0 ? 'sun' : dayOfWeek === 6 ? 'sat' : '';
+      const holiday = this.koreanHolidays[dateKey];
+
+      const isToday = (year === 2026 && month === 7 && day === 19);
+
+      // Find exams on this day
+      const dayExams = this.subjects.filter(s => {
+        if (!s.examDate) return false;
+        return s.examDate.startsWith(dateKey);
+      });
+
+      let examsHtml = dayExams.map(s => {
+        const timeStr = s.examDate.split(' ')[1] || '';
+        const isConfirmed = s.type === '확정 일정';
+        const typeClass = isConfirmed ? 'type-confirmed' : 'type-estimated';
+        const statusLabel = isConfirmed ? '확정' : '예상';
+
+        return `
+          <div class="exam-cal-badge ${typeClass}" 
+               title="${s.name} (${s.type}) - ${s.examDate}\n범위: ${s.scope}"
+               onclick="event.stopPropagation(); app.navigateTo('exam'); examModule.viewExamDetail('${s.id}')">
+            <span>⏰ ${timeStr}</span>
+            <span style="font-weight:700;">${s.name}</span>
+            <span style="font-size:0.6rem; opacity:0.85;">(${statusLabel})</span>
+          </div>
+        `;
+      }).join('');
+
+      calGridHtml += `
+        <div class="calendar-day-cell ${isToday ? 'today' : ''}" 
+             onclick="app.navigateTo('exam'); examModule.openAddExamForDate('${dateKey}')">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${numClass}">${day}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
+          </div>
+          <div class="calendar-events-wrap">
+            ${examsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Next Month Spillover Days
+    const totalCellsFilled = firstDayIndex + lastDate;
+    const remainingCells = (7 - (totalCellsFilled % 7)) % 7;
+    for (let nextDay = 1; nextDay <= remainingCells; nextDay++) {
+      const nextDateObj = new Date(year, month + 1, nextDay);
+      const nextDayOfWeek = nextDateObj.getDay();
+      const numClass = nextDayOfWeek === 0 ? 'sun' : nextDayOfWeek === 6 ? 'sat' : '';
+      const dateKey = `${year}-${String(month + 2).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`;
+      const holiday = this.koreanHolidays[dateKey];
+
+      calGridHtml += `
+        <div class="calendar-day-cell other-month">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${numClass}">${nextDay}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    dashboardEl.innerHTML = `
+      <div class="dashboard-exam-widget-wrap">
+        <!-- Hero D-Day Top Banner -->
+        ${first ? `
+          <div class="dashboard-exam-hero-bar">
+            <div style="display:flex; align-items:center; gap:0.6rem;">
+              <span class="badge badge-danger" style="font-size:0.78rem;">첫 시험 D-Day</span>
+              <div>
+                <strong style="font-size:0.95rem; color:#fff;">${first.name}</strong>
+                <span class="text-xs text-muted" style="margin-left:0.4rem;">(${first.examDate} / ${first.type})</span>
+              </div>
+            </div>
+            <div style="font-size:1.05rem; font-weight:800; color:#FCA5A5; font-family:'Outfit',sans-serif;">
+              ${this.formatCountdown(first.examDate)}
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Calendar Month Bar -->
+        <div class="calendar-nav-bar" style="background:rgba(0,0,0,0.25); padding:0.4rem 0.7rem; border-radius:var(--radius-md); border:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+          <div class="calendar-nav-left" style="display:flex; align-items:center; gap:0.35rem;">
+            <button type="button" class="calendar-nav-btn" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="examModule.changeDashboardExamMonth(-1)"><i data-lucide="chevron-left" style="width:12px;height:12px;"></i> 이전</button>
+            <span class="calendar-nav-title" style="font-size:0.95rem; font-weight:800; margin:0 0.3rem;">${year}년 ${month + 1}월</span>
+            <button type="button" class="calendar-nav-btn" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="examModule.changeDashboardExamMonth(1)">다음 <i data-lucide="chevron-right" style="width:12px;height:12px;"></i></button>
+          </div>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <button type="button" class="calendar-nav-btn" style="padding:0.2rem 0.5rem; font-size:0.75rem;" onclick="examModule.goToTodayDashboardExam()"><i data-lucide="calendar-days" style="width:12px;height:12px;"></i> 오늘 (2026.08)</button>
+            <button type="button" class="btn btn-xs btn-primary" onclick="app.navigateTo('exam'); app.openModal('addExamModal')"><i data-lucide="plus" style="width:12px;height:12px;"></i> 일정 등록</button>
+          </div>
+        </div>
+
+        <!-- Mini Calendar Grid -->
+        <div class="team-project-calendar compact-exam-calendar dashboard-exam-cal-grid">
+          <div class="calendar-grid-header">
+            <div class="calendar-header-day sun">일</div>
+            <div class="calendar-header-day">월</div>
+            <div class="calendar-header-day">화</div>
+            <div class="calendar-header-day">수</div>
+            <div class="calendar-header-day">목</div>
+            <div class="calendar-header-day">금</div>
+            <div class="calendar-header-day sat">토</div>
+          </div>
+          <div class="calendar-grid-body">
+            ${calGridHtml}
+          </div>
+        </div>
+
+        <!-- Quick Summary List -->
+        <div class="dashboard-exam-list-summary">
+          ${this.subjects.map(s => `
+            <div class="dashboard-exam-item-mini" onclick="app.navigateTo('exam'); examModule.viewExamDetail('${s.id}')">
+              <div style="display:flex; align-items:center; gap:0.4rem; overflow:hidden;">
+                <span class="badge ${s.type === '확정 일정' ? 'badge-primary' : 'badge-warning'}" style="font-size:0.65rem;">${s.type === '확정 일정' ? '확정' : '예상'}</span>
+                <span style="font-size:0.82rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${s.name}</span>
+              </div>
+              <span class="text-xs text-muted" style="font-size:0.72rem; flex-shrink:0;">${s.examDate.split(' ')[0]}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) lucide.createIcons();
   },
 
   renderSubjectList() {
