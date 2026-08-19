@@ -253,6 +253,8 @@ const app = {
     document.getElementById('pageSubtitle').innerText = info.sub;
 
     if (viewId === 'teamproject' && window.projectsModule) {
+      projectsModule.renderProjectCalendar();
+      projectsModule.renderTodoList();
       setTimeout(() => projectsModule.initMapIfNeeded(), 300);
     }
 
