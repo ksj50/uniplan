@@ -26,7 +26,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260819_08">
+  <link rel="stylesheet" href="css/style.css?v=20260819_09">
 </head>
 <body class="dark-theme">
   <div id="app" class="app-layout">
@@ -601,15 +601,46 @@
             <!-- Tab Content 2: Availability Matrix -->
             <div id="roomTab-availability" class="room-tab-content">
               <div class="glass-card">
-                <div class="card-header">
-                  <h3><i data-lucide="calendar-check"></i> 팀원별 가능한 시간/요일 입력 & 공통 시간 자동 산출</h3>
-                  <button class="btn btn-sm btn-primary" onclick="projectsModule.calculateCommonTime()"><i data-lucide="sparkles"></i> 공통 모임 시간 계산하기</button>
-                </div>
-                <div class="availability-matrix-container">
-                  <p class="text-sm mb-3">각 팀원이 입력한 가능 시간을 결합하여 모두가 만날 수 있는 최적의 모임 시간을 자동으로 계산합니다.</p>
-                  <div id="availabilityGrid" class="availability-grid">
-                    <!-- Interactive Time Grid -->
+                <div class="card-header" style="flex-wrap:wrap; gap:0.75rem;">
+                  <div>
+                    <h3><i data-lucide="calendar-check"></i> 팀원별 가능한 시간 입력 & 공통 시간 자동 조율</h3>
+                    <p class="text-xs text-muted" style="margin-top:0.2rem;">팀원별로 가능한 요일과 시간대를 클릭하여 입력하고, 전원이 만날 수 있는 최적의 회의 시간을 산출하세요.</p>
                   </div>
+                  <button class="btn btn-sm btn-primary" onclick="projectsModule.calculateCommonTime()"><i data-lucide="sparkles"></i> 최적 공통 시간 계산하기</button>
+                </div>
+
+                <div class="availability-matrix-container">
+                  <!-- Member Selector & Presets Controls Bar -->
+                  <div class="avail-controls-bar mb-3" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.8rem; background:rgba(0,0,0,0.25); padding:0.75rem 1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                      <span class="text-xs text-muted" style="font-weight:700;">시간 입력 대상:</span>
+                      <div id="availMemberTabs" class="avail-member-tabs" style="display:flex; gap:0.3rem; flex-wrap:wrap;">
+                        <!-- Member tabs injected by JS -->
+                      </div>
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:0.4rem; flex-wrap:wrap;">
+                      <button type="button" class="btn btn-xs btn-outline" onclick="projectsModule.applyAvailPreset('freeTime')"><i data-lucide="zap"></i> 공강 시간 자동 적용</button>
+                      <button type="button" class="btn btn-xs btn-outline" onclick="projectsModule.applyAvailPreset('afternoon')">오후 (13~18시)</button>
+                      <button type="button" class="btn btn-xs btn-outline" onclick="projectsModule.applyAvailPreset('evening')">저녁 (18~21시)</button>
+                      <button type="button" class="btn btn-xs btn-secondary" onclick="projectsModule.applyAvailPreset('clear')"><i data-lucide="rotate-ccw"></i> 전체 비우기</button>
+                    </div>
+                  </div>
+
+                  <!-- Guide notice & Legend -->
+                  <div id="availModeHint" class="text-xs text-muted mb-2" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                    <span id="availGuideText">💡 시간 슬롯(칸)을 클릭하면 <strong>가능(초록색) / 불가능(회색)</strong>으로 전환됩니다.</span>
+                    <span id="availLegend" style="font-size:0.75rem;">
+                      <!-- Legend Injected -->
+                    </span>
+                  </div>
+
+                  <!-- Interactive Time Grid -->
+                  <div id="availabilityGrid" class="availability-grid">
+                    <!-- Interactive Time Grid Injected by JS -->
+                  </div>
+
+                  <!-- Calculated Common Time Result Box -->
                   <div id="commonTimeResult" class="common-time-result alert-banner success mt-4">
                     <!-- Calculated common time -->
                   </div>
@@ -1681,13 +1712,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260819_08"></script>
-  <script src="js/modules/semester.js?v=20260819_08"></script>
-  <script src="js/modules/exam.js?v=20260819_08"></script>
-  <script src="js/modules/projects.js?v=20260819_08"></script>
-  <script src="js/modules/admin.js?v=20260819_08"></script>
-  <script src="js/modules/studymode.js?v=20260819_08"></script>
-  <script src="js/app.js?v=20260819_08"></script>
+  <script src="js/modules/graduation.js?v=20260819_09"></script>
+  <script src="js/modules/semester.js?v=20260819_09"></script>
+  <script src="js/modules/exam.js?v=20260819_09"></script>
+  <script src="js/modules/projects.js?v=20260819_09"></script>
+  <script src="js/modules/admin.js?v=20260819_09"></script>
+  <script src="js/modules/studymode.js?v=20260819_09"></script>
+  <script src="js/app.js?v=20260819_09"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

@@ -730,28 +730,118 @@ body.light-theme .moon-icon { display: block; }
 .room-tab-content.active { display: block; animation: fadeIn 0.3s ease; }
 
 /* Interactive Time Matrix for Availability */
+.avail-member-tab {
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.avail-member-tab:hover {
+  background: rgba(99, 102, 241, 0.2);
+  color: #fff;
+}
+.avail-member-tab.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+.avail-member-tab.heatmap-tab.active {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border-color: #10b981;
+}
+
 .availability-grid {
   display: grid;
-  grid-template-columns: 70px repeat(7, 1fr);
-  gap: 2px;
-  background: var(--border-color);
+  grid-template-columns: 65px repeat(7, 1fr);
+  gap: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   overflow: hidden;
-  margin-top: 1rem;
+  user-select: none;
 }
 
 .avail-cell {
-  background: var(--bg-sidebar);
-  padding: 0.5rem;
+  background: var(--bg-card);
+  padding: 0.6rem 0.2rem;
   text-align: center;
   font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
 }
 
-.avail-header { font-weight: 700; background: rgba(0, 0, 0, 0.3); }
-.avail-slot { cursor: pointer; transition: var(--transition); }
-.avail-slot.match-4 { background: rgba(16, 185, 129, 0.6); color: #fff; font-weight: 700; }
-.avail-slot.match-3 { background: rgba(16, 185, 129, 0.35); }
-.avail-slot.match-2 { background: rgba(245, 158, 11, 0.25); }
+.avail-header {
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.45);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.avail-header.time-col {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.avail-header.sun { color: #f87171; }
+.avail-header.sat { color: #60a5fa; }
+
+.avail-slot {
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+.avail-slot:hover {
+  filter: brightness(1.25);
+  outline: 1.5px solid var(--primary);
+  z-index: 2;
+}
+
+/* Individual Mode: Active/Inactive */
+.avail-slot.slot-active {
+  background: rgba(16, 185, 129, 0.45);
+  color: #fff;
+  font-weight: 700;
+}
+.avail-slot.slot-inactive {
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.2);
+}
+
+/* Heatmap Mode: Matching counts */
+.avail-slot.match-4 {
+  background: rgba(16, 185, 129, 0.85);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+.avail-slot.match-3 {
+  background: rgba(16, 185, 129, 0.45);
+  color: #d1fae5;
+  font-weight: 700;
+}
+.avail-slot.match-2 {
+  background: rgba(245, 158, 11, 0.35);
+  color: #fef3c7;
+}
+.avail-slot.match-1 {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+.avail-slot.match-0 {
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.15);
+}
 
 /* Map & Recommended Places */
 .location-body { display: flex; flex-direction: column; gap: 1rem; }

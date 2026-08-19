@@ -85,7 +85,14 @@ const projectsModule = {
       { id: 'dl1', title: '산학 과제 중간 점검 보고서', date: '2026-08-20', time: '18:00', type: 'midterm', assignee: '김대학, 이철수' },
       { id: 'dl2', title: 'UI 프로토타입 팀원 피드백 회의', date: '2026-08-25', time: '15:00', type: 'meeting', assignee: '전체 팀원' },
       { id: 'dl3', title: '최종 캡스톤 결과물 코드 및 발표자료 제출', date: '2026-08-30', time: '23:59', type: 'final', assignee: '전체 팀원' }
-    ]
+    ],
+    memberSchedules: {
+      '김대학(나)': ['mon-13', 'mon-14', 'wed-14', 'wed-15', 'wed-16', 'wed-17', 'thu-18', 'thu-19', 'thu-20', 'fri-14', 'fri-15'],
+      '이철수': ['mon-10', 'mon-11', 'wed-16', 'wed-17', 'thu-18', 'thu-19', 'thu-20', 'fri-16', 'fri-17'],
+      '박영희': ['tue-10', 'tue-11', 'wed-15', 'wed-16', 'wed-17', 'thu-18', 'thu-19', 'thu-20', 'sat-14', 'sat-15'],
+      '정민우': ['mon-13', 'mon-14', 'wed-16', 'wed-17', 'thu-17', 'thu-18', 'thu-19', 'thu-20', 'fri-14', 'fri-15']
+    },
+    currentAvailMember: '김대학(나)'
   },
 
   universityCoords: {
@@ -1513,53 +1520,286 @@ const projectsModule = {
     }
   },
 
+  selectAvailMember(memberName) {
+    this.activeRoom.currentAvailMember = memberName;
+    this.renderAvailabilityMatrix();
+  },
+
+  toggleMemberSlot(slotKey) {
+    const currentMember = this.activeRoom.currentAvailMember;
+    if (currentMember === 'all') {
+      app.showToast('공통 종합 모드에서는 팀원 이름을 선택하여 개인 시간을 수정해 주세요.', 'info');
+      return;
+    }
+
+    if (!this.activeRoom.memberSchedules) this.activeRoom.memberSchedules = {};
+    if (!this.activeRoom.memberSchedules[currentMember]) this.activeRoom.memberSchedules[currentMember] = [];
+
+    const list = this.activeRoom.memberSchedules[currentMember];
+    const idx = list.indexOf(slotKey);
+    if (idx > -1) {
+      list.splice(idx, 1);
+    } else {
+      list.push(slotKey);
+    }
+
+    this.renderAvailabilityMatrix();
+  },
+
+  applyAvailPreset(presetType) {
+    const currentMember = this.activeRoom.currentAvailMember;
+    if (currentMember === 'all') {
+      app.showToast('프리셋 적용을 위해 먼저 특정 팀원 탭을 선택해 주세요.', 'warning');
+      return;
+    }
+
+    if (!this.activeRoom.memberSchedules) this.activeRoom.memberSchedules = {};
+    const dayCodes = ['mon', 'tue', 'wed', 'thu', 'fri'];
+
+    if (presetType === 'clear') {
+      this.activeRoom.memberSchedules[currentMember] = [];
+      app.showToast(`[${currentMember}] 가능 시간이 모두 비워졌습니다.`, 'info');
+    } else if (presetType === 'freeTime') {
+      // Free time preset (Mon 13~16, Wed 14~18, Fri 13~16)
+      const freeSlots = ['mon-13', 'mon-14', 'mon-15', 'wed-14', 'wed-15', 'wed-16', 'wed-17', 'fri-13', 'fri-14', 'fri-15'];
+      this.activeRoom.memberSchedules[currentMember] = Array.from(new Set([...(this.activeRoom.memberSchedules[currentMember] || []), ...freeSlots]));
+      app.showToast(`[${currentMember}] 이번 학기 공강 시간이 자동 적용되었습니다!`, 'success');
+    } else if (presetType === 'afternoon') {
+      const afternoonSlots = [];
+      dayCodes.forEach(d => {
+        for (let h = 13; h <= 17; h++) afternoonSlots.push(`${d}-${h}`);
+      });
+      this.activeRoom.memberSchedules[currentMember] = Array.from(new Set([...(this.activeRoom.memberSchedules[currentMember] || []), ...afternoonSlots]));
+      app.showToast(`[${currentMember}] 평일 오후(13~18시)가 가능 시간으로 추가되었습니다.`, 'success');
+    } else if (presetType === 'evening') {
+      const eveningSlots = [];
+      dayCodes.forEach(d => {
+        for (let h = 18; h <= 20; h++) eveningSlots.push(`${d}-${h}`);
+      });
+      this.activeRoom.memberSchedules[currentMember] = Array.from(new Set([...(this.activeRoom.memberSchedules[currentMember] || []), ...eveningSlots]));
+      app.showToast(`[${currentMember}] 평일 저녁(18~21시)이 가능 시간으로 추가되었습니다.`, 'success');
+    }
+
+    this.renderAvailabilityMatrix();
+  },
+
   renderAvailabilityMatrix() {
-    const container = document.getElementById('availabilityGrid');
-    if (!container) return;
+    const gridContainer = document.getElementById('availabilityGrid');
+    const tabsContainer = document.getElementById('availMemberTabs');
+    const legendEl = document.getElementById('availLegend');
+    const guideTextEl = document.getElementById('availGuideText');
 
-    const days = ['시간', '월', '화', '수', '목', '금', '토', '일'];
-    const times = ['10:00', '12:00', '14:00', '16:00', '18:00', '20:00'];
+    if (!gridContainer) return;
 
-    let html = days.map(d => `<div class="avail-cell avail-header">${d}</div>`).join('');
+    const members = this.activeRoom.members || ['김대학(나)', '이철수', '박영희', '정민우'];
+    const currentMember = this.activeRoom.currentAvailMember || '김대학(나)';
+    const schedules = this.activeRoom.memberSchedules || {};
 
-    times.forEach(t => {
-      html += `<div class="avail-cell avail-header">${t}</div>`;
-      for (let i = 1; i <= 7; i++) {
-        // Simulating matches (Match 4 = all 4 members available on Wed 16:00 & Thu 18:00)
-        let matchClass = '';
-        let label = '';
+    // 1. Render Member Selector Tabs
+    if (tabsContainer) {
+      tabsContainer.innerHTML = `
+        ${members.map(m => `
+          <button type="button" 
+                  class="avail-member-tab ${currentMember === m ? 'active' : ''}" 
+                  onclick="projectsModule.selectAvailMember('${m}')">
+            <i data-lucide="user" style="width:13px;height:13px;"></i> ${m} ${m.includes('(나)') ? '✍️' : ''}
+          </button>
+        `).join('')}
+        <button type="button" 
+                class="avail-member-tab heatmap-tab ${currentMember === 'all' ? 'active' : ''}" 
+                onclick="projectsModule.selectAvailMember('all')">
+          <i data-lucide="sparkles" style="width:13px;height:13px;"></i> ✨ 전체 공통 종합 (Heatmap)
+        </button>
+      `;
+    }
 
-        if ((i === 3 && t === '16:00') || (i === 4 && t === '18:00')) {
-          matchClass = 'match-4';
-          label = '4명 전원 가능!';
-        } else if ((i === 1 && t === '14:00') || (i === 5 && t === '16:00')) {
-          matchClass = 'match-3';
-          label = '3명 가능';
+    // 2. Legend & Guide
+    if (legendEl && guideTextEl) {
+      if (currentMember === 'all') {
+        guideTextEl.innerHTML = `🌟 <strong>전체 팀원 공통 종합 모드</strong>: 4명 전원 일치(짙은 초록), 3명 일치(연초록), 2명 일치(노랑) 순으로 표시됩니다.`;
+        legendEl.innerHTML = `
+          <span style="color:#10b981; font-weight:800;">■ 4명 전원</span> &nbsp;|&nbsp;
+          <span style="color:#34d399; font-weight:700;">■ 3명</span> &nbsp;|&nbsp;
+          <span style="color:#fbbf24; font-weight:700;">■ 2명</span> &nbsp;|&nbsp;
+          <span style="color:#64748b;">■ 1명/0명</span>
+        `;
+      } else {
+        guideTextEl.innerHTML = `💡 <strong>[${currentMember}]</strong> 님의 가능한 시간 슬롯(칸)을 클릭하여 <strong>가능(초록색) / 불가능(회색)</strong>으로 켜고 끄세요.`;
+        legendEl.innerHTML = `
+          <span style="color:#10b981; font-weight:700;">■ 가능 (클릭 시 선택)</span> &nbsp;|&nbsp;
+          <span style="color:#64748b;">■ 불가능</span>
+        `;
+      }
+    }
+
+    // 3. Days & Time Slots (09:00 ~ 21:00)
+    const days = [
+      { code: 'time', label: '시간' },
+      { code: 'mon', label: '월' },
+      { code: 'tue', label: '화' },
+      { code: 'wed', label: '수' },
+      { code: 'thu', label: '목' },
+      { code: 'fri', label: '금' },
+      { code: 'sat', label: '토', isSat: true },
+      { code: 'sun', label: '일', isSun: true }
+    ];
+
+    const hours = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+    let gridHtml = '';
+
+    // Header Row
+    days.forEach(d => {
+      const colClass = d.isSun ? 'sun' : d.isSat ? 'sat' : '';
+      gridHtml += `<div class="avail-cell avail-header ${colClass}">${d.label}</div>`;
+    });
+
+    // Time Rows
+    hours.forEach(h => {
+      const timeLabel = `${String(h).padStart(2, '0')}:00`;
+      gridHtml += `<div class="avail-cell avail-header time-col">${timeLabel}</div>`;
+
+      for (let i = 1; i < days.length; i++) {
+        const dayCode = days[i].code;
+        const slotKey = `${dayCode}-${h}`;
+
+        if (currentMember === 'all') {
+          // Heatmap calculations
+          const availableMembers = members.filter(m => (schedules[m] || []).includes(slotKey));
+          const count = availableMembers.length;
+          const matchClass = `match-${count}`;
+          const countLabel = count > 0 ? (count === members.length ? `<strong>${count}명 전원!</strong>` : `${count}명`) : '-';
+          const tooltip = `${days[i].label}요일 ${timeLabel} (${count}/${members.length}명 가능): ${availableMembers.join(', ') || '없음'}`;
+
+          gridHtml += `
+            <div class="avail-cell avail-slot ${matchClass}" 
+                 title="${tooltip}" 
+                 onclick="projectsModule.showSlotMembersDetail('${days[i].label}', '${timeLabel}', '${availableMembers.join(', ')}')">
+              ${countLabel}
+            </div>
+          `;
         } else {
-          matchClass = 'match-2';
-          label = '2명 가능';
-        }
+          // Individual Member Selection Mode
+          const mySlots = schedules[currentMember] || [];
+          const isSelected = mySlots.includes(slotKey);
+          const slotClass = isSelected ? 'slot-active' : 'slot-inactive';
+          const slotLabel = isSelected ? '✓ 가능' : '-';
 
-        html += `<div class="avail-cell avail-slot ${matchClass}" title="${days[i]}요일 ${t}">${label}</div>`;
+          gridHtml += `
+            <div class="avail-cell avail-slot ${slotClass}" 
+                 title="[${currentMember}] ${days[i].label}요일 ${timeLabel} - 클릭하여 전환" 
+                 onclick="projectsModule.toggleMemberSlot('${slotKey}')">
+              ${slotLabel}
+            </div>
+          `;
+        }
       }
     });
 
-    container.innerHTML = html;
+    gridContainer.innerHTML = gridHtml;
+    if (window.lucide) lucide.createIcons();
+  },
+
+  showSlotMembersDetail(dayLabel, timeLabel, membersStr) {
+    if (!membersStr || membersStr.trim() === '') {
+      app.showToast(`${dayLabel}요일 ${timeLabel}: 가능한 팀원이 없습니다.`, 'info');
+    } else {
+      app.showToast(`👥 ${dayLabel}요일 ${timeLabel} 가능 팀원: ${membersStr}`, 'info');
+    }
   },
 
   calculateCommonTime() {
     const resultBox = document.getElementById('commonTimeResult');
+    const members = this.activeRoom.members || ['김대학(나)', '이철수', '박영희', '정민우'];
+    const schedules = this.activeRoom.memberSchedules || {};
+
+    const daysMap = { mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일' };
+    const hours = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
+
+    // Find all slots with overlap counts
+    const rankedSlots = [];
+    Object.keys(daysMap).forEach(d => {
+      hours.forEach(h => {
+        const slotKey = `${d}-${h}`;
+        const availList = members.filter(m => (schedules[m] || []).includes(slotKey));
+        if (availList.length >= 2) {
+          rankedSlots.push({
+            dayCode: d,
+            dayLabel: daysMap[d],
+            hour: h,
+            timeStr: `${String(h).padStart(2, '0')}:00 ~ ${String(h + 1).padStart(2, '0')}:00`,
+            count: availList.length,
+            members: availList
+          });
+        }
+      });
+    });
+
+    // Sort by count descending, then hour
+    rankedSlots.sort((a, b) => b.count - a.count || a.hour - b.hour);
+
+    // Switch to Heatmap view
+    this.selectAvailMember('all');
+
+    if (rankedSlots.length === 0) {
+      if (resultBox) {
+        resultBox.innerHTML = `
+          <i data-lucide="info"></i>
+          <div>
+            <strong>[공통 모임 시간 산출 결과]</strong><br>
+            현재 2명 이상 일치하는 공통 가능 시간이 없습니다. 각 팀원 탭을 눌러 가능 시간을 더 등록해 보세요!
+          </div>
+        `;
+      }
+      app.showToast('일치하는 공통 모임 시간이 없습니다. 가능 시간을 등록해 주세요.', 'warning');
+      return;
+    }
+
+    const top1 = rankedSlots[0];
+    const top2 = rankedSlots.length > 1 ? rankedSlots[1] : null;
+    const top3 = rankedSlots.length > 2 ? rankedSlots[2] : null;
+
     if (resultBox) {
       resultBox.innerHTML = `
-        <i data-lucide="sparkles"></i>
-        <div>
-          <strong>[팀원 4명 최적 공통 모임 시간 산출 완료]</strong><br>
-          1순위: <strong>수요일 16:00 ~ 18:00 (4명 전원 참석 가능)</strong><br>
-          2순위: <strong>목요일 18:00 ~ 20:00 (4명 전원 참석 가능)</strong>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; width:100%;">
+          <div>
+            <div style="font-size:1.05rem; font-weight:800; color:#fff; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.4rem;">
+              <i data-lucide="sparkles" style="color:var(--accent);"></i> [팀원 ${members.length}명 최적 공통 모임 시간 산출 완료]
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.3rem; font-size:0.88rem; color:#d1fae5;">
+              <div>🥇 <strong>1순위 추천</strong>: <span style="font-weight:800; color:#fff; text-decoration:underline;">${top1.dayLabel}요일 ${top1.timeStr}</span> (${top1.count}/${members.length}명 참석 가능 - ${top1.members.join(', ')})</div>
+              ${top2 ? `<div>🥈 <strong>2순위 추천</strong>: <strong>${top2.dayLabel}요일 ${top2.timeStr}</strong> (${top2.count}/${members.length}명 참석 가능)</div>` : ''}
+              ${top3 ? `<div>🥉 <strong>3순위 추천</strong>: <strong>${top3.dayLabel}요일 ${top3.timeStr}</strong> (${top3.count}/${members.length}명 참석 가능)</div>` : ''}
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-accent" onclick="projectsModule.bookMeetingToCalendar('${top1.dayLabel}', '${top1.hour}:00')">
+            <i data-lucide="calendar-plus"></i> 1순위 시간 달력에 등록
+          </button>
         </div>
       `;
     }
-    app.showToast('팀원 전원이 참여 가능한 모임 시간이 산출되었습니다.', 'success');
+
+    if (window.lucide) lucide.createIcons();
+    app.showToast(`최적 공통 모임 시간: ${top1.dayLabel}요일 ${top1.timeStr} (${top1.count}명 일치)`, 'success');
+  },
+
+  bookMeetingToCalendar(dayLabel, timeStr) {
+    const dateStr = `${this.calendarYear}-${String(this.calendarMonth + 1).padStart(2, '0')}-20`;
+
+    const newMeetingDeadline = {
+      id: 'dl_' + Date.now(),
+      title: `팀 프로젝트 정기 회의 (${dayLabel}요일)`,
+      date: dateStr,
+      time: timeStr || '16:00',
+      type: 'meeting',
+      assignee: '전체 팀원'
+    };
+
+    if (!this.activeRoom.deadlines) this.activeRoom.deadlines = [];
+    this.activeRoom.deadlines.push(newMeetingDeadline);
+
+    this.switchRoomTab('overview');
+    app.showToast(`[${newMeetingDeadline.title}] 일정이 마감 달력에 등록되었습니다!`, 'success');
   },
 
   setLocationType(type) {
@@ -1845,6 +2085,8 @@ const projectsModule = {
     if (tabId === 'overview') {
       this.renderProjectCalendar();
       this.renderTodoList();
+    } else if (tabId === 'availability') {
+      this.renderAvailabilityMatrix();
     } else if (tabId === 'location') {
       setTimeout(() => this.initMapIfNeeded(), 200);
     }
