@@ -625,32 +625,262 @@ const projectsModule = {
     }
   },
 
-  renderPhotoGallery() {
-    const container = document.getElementById('sharedPhotoGalleryGrid');
-    if (!container) return;
+  stagedPhotos: [],
 
-    container.innerHTML = this.activeRoom.photos.map(p => `
-      <div class="gallery-card">
-        <img src="${p.url}" alt="Shared Photo">
-        <div class="overlay">
-          <span>${p.uploader} | ${p.date}</span>
+  openPhotoUploadModal() {
+    this.stagedPhotos = [];
+    this.renderStagedPhotos();
+    const uploaderInput = document.getElementById('galleryUploaderName');
+    if (uploaderInput) {
+      const saved = localStorage.getItem('uniplan_user_profile');
+      if (saved) {
+        try {
+          const profile = JSON.parse(saved);
+          if (profile.name) uploaderInput.value = `${profile.name}(나)`;
+        } catch (e) {}
+      }
+    }
+    const fileInput = document.getElementById('galleryFileInput');
+    if (fileInput) fileInput.value = '';
+    app.openModal('galleryUploadModal');
+    if (window.lucide) lucide.createIcons();
+  },
+
+  uploadGalleryPhoto() {
+    this.openPhotoUploadModal();
+  },
+
+  handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('galleryDropzone');
+    if (dropzone) dropzone.classList.add('dragover');
+  },
+
+  handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('galleryDropzone');
+    if (dropzone) dropzone.classList.remove('dragover');
+  },
+
+  handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('galleryDropzone');
+    if (dropzone) dropzone.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      this.processFiles(e.dataTransfer.files);
+    }
+  },
+
+  handleGalleryTabDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const hint = document.getElementById('galleryInlineDropzone');
+    if (hint) hint.classList.add('dragover');
+  },
+
+  handleGalleryTabDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const hint = document.getElementById('galleryInlineDropzone');
+    if (hint) hint.classList.remove('dragover');
+  },
+
+  handleGalleryTabDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const hint = document.getElementById('galleryInlineDropzone');
+    if (hint) hint.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      this.openPhotoUploadModal();
+      this.processFiles(e.dataTransfer.files);
+    }
+  },
+
+  handleFilesSelected(e) {
+    if (e.target && e.target.files && e.target.files.length > 0) {
+      this.processFiles(e.target.files);
+    }
+  },
+
+  handleDirectFilesSelected(e) {
+    if (e.target && e.target.files && e.target.files.length > 0) {
+      this.openPhotoUploadModal();
+      this.processFiles(e.target.files);
+    }
+  },
+
+  processFiles(fileList) {
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) {
+      app.showToast('이미지 파일(JPG, PNG, GIF, WEBP 등)만 업로드할 수 있습니다.', 'warning');
+      return;
+    }
+
+    let loadedCount = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const stagedItem = {
+          id: 'stg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+          name: file.name,
+          size: file.size > 1024 * 1024 
+            ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' 
+            : Math.round(file.size / 1024) + ' KB',
+          dataUrl: evt.target.result,
+          file: file
+        };
+        this.stagedPhotos.push(stagedItem);
+        loadedCount++;
+        if (loadedCount === files.length) {
+          this.renderStagedPhotos();
+          app.showToast(`${files.length}장의 사진이 선택되었습니다. 검토 후 업로드를 완료하세요!`, 'info');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  },
+
+  renderStagedPhotos() {
+    const section = document.getElementById('stagedPhotosSection');
+    const grid = document.getElementById('stagedPhotosGrid');
+    const badge = document.getElementById('stagedCountBadge');
+    const btnCount = document.getElementById('uploadBtnCount');
+
+    const count = this.stagedPhotos.length;
+    if (badge) badge.innerText = `선택된 사진 ${count}장`;
+    if (btnCount) btnCount.innerText = count;
+
+    if (!section || !grid) return;
+
+    if (count === 0) {
+      section.classList.add('hidden');
+      grid.innerHTML = '';
+      return;
+    }
+
+    section.classList.remove('hidden');
+    grid.innerHTML = this.stagedPhotos.map(p => `
+      <div class="staged-photo-card" id="${p.id}">
+        <img src="${p.dataUrl}" alt="${p.name}">
+        <div class="staged-photo-info">
+          <span class="staged-photo-name" title="${p.name}">${p.name}</span>
+          <span class="staged-photo-size">${p.size}</span>
         </div>
+        <button type="button" class="staged-photo-remove" onclick="projectsModule.removeStagedPhoto('${p.id}')" title="제거">&times;</button>
       </div>
     `).join('');
   },
 
-  uploadGalleryPhoto() {
-    const url = prompt('업로드할 사진 Image URL (또는 시뮬레이션 URL)을 입력하세요:', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400');
-    if (url && url.trim()) {
-      this.activeRoom.photos.push({
-        id: 'p' + Date.now(),
-        url: url.trim(),
-        uploader: '김대학(나)',
-        date: '오늘'
-      });
-      this.renderPhotoGallery();
-      app.showToast('공유 사진 갤러리에 새 사진이 추가되었습니다.', 'success');
+  removeStagedPhoto(id) {
+    this.stagedPhotos = this.stagedPhotos.filter(p => p.id !== id);
+    this.renderStagedPhotos();
+  },
+
+  clearStagedPhotos() {
+    this.stagedPhotos = [];
+    this.renderStagedPhotos();
+    const fileInput = document.getElementById('galleryFileInput');
+    if (fileInput) fileInput.value = '';
+    const fileInputDirect = document.getElementById('galleryFileInputDirect');
+    if (fileInputDirect) fileInputDirect.value = '';
+  },
+
+  confirmStagedUpload() {
+    if (this.stagedPhotos.length === 0) {
+      app.showToast('업로드할 사진 파일을 1장 이상 선택해 주세요.', 'warning');
+      return;
     }
+
+    const uploaderInput = document.getElementById('galleryUploaderName');
+    const uploader = (uploaderInput && uploaderInput.value.trim()) ? uploaderInput.value.trim() : '김대학(나)';
+    const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+
+    this.stagedPhotos.forEach(p => {
+      this.activeRoom.photos.unshift({
+        id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        url: p.dataUrl,
+        name: p.name,
+        uploader: uploader,
+        date: todayStr
+      });
+    });
+
+    const addedCount = this.stagedPhotos.length;
+    this.clearStagedPhotos();
+    app.closeModal('galleryUploadModal');
+    this.renderPhotoGallery();
+    app.showToast(`총 ${addedCount}장의 사진이 공유 갤러리에 업로드되었습니다!`, 'success');
+  },
+
+  renderPhotoGallery() {
+    const container = document.getElementById('sharedPhotoGalleryGrid');
+    if (!container) return;
+
+    if (!this.activeRoom.photos || this.activeRoom.photos.length === 0) {
+      container.innerHTML = `
+        <div class="gallery-empty-card" onclick="projectsModule.openPhotoUploadModal()">
+          <i data-lucide="image-plus" style="width:40px;height:40px;color:var(--primary);"></i>
+          <div style="font-weight:700; font-size:0.95rem; color:#fff;">공유된 사진이 없습니다</div>
+          <div style="font-size:0.8rem;">사진을 화면으로 끌어다 놓거나 여기를 클릭하여 첫 번째 사진을 올려보세요.</div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = this.activeRoom.photos.map(p => `
+      <div class="gallery-card" onclick="projectsModule.viewPhotoDetail('${p.id}')">
+        <img src="${p.url}" alt="${p.name || 'Shared Photo'}" loading="lazy">
+        <div class="overlay">
+          <div class="photo-meta">
+            <span class="photo-uploader"><i data-lucide="user" style="width:12px;height:12px;"></i> ${p.uploader}</span>
+            <span class="photo-date">${p.date}</span>
+          </div>
+          <div class="photo-actions" onclick="event.stopPropagation()">
+            <button class="btn-gallery-del" title="사진 삭제" onclick="projectsModule.deleteGalleryPhoto('${p.id}', event)">
+              <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  deleteGalleryPhoto(id, e) {
+    if (e) e.stopPropagation();
+    if (confirm('이 사진을 공유 갤러리에서 삭제하시겠습니까?')) {
+      this.activeRoom.photos = this.activeRoom.photos.filter(p => p.id !== id);
+      this.renderPhotoGallery();
+      app.showToast('사진이 공유 갤러리에서 삭제되었습니다.', 'info');
+    }
+  },
+
+  viewPhotoDetail(id) {
+    const photo = this.activeRoom.photos.find(p => p.id === id);
+    if (!photo) return;
+
+    const img = document.getElementById('photoDetailImg');
+    const title = document.getElementById('photoDetailTitle');
+    const uploader = document.getElementById('photoDetailUploader');
+    const date = document.getElementById('photoDetailDate');
+    const downloadBtn = document.getElementById('photoDetailDownloadBtn');
+
+    if (img) img.src = photo.url;
+    if (title) title.innerHTML = `<i data-lucide="image"></i> ${photo.name || '공유 사진'}`;
+    if (uploader) uploader.innerHTML = `<i data-lucide="user"></i> 업로더: <strong>${photo.uploader}</strong>`;
+    if (date) date.innerHTML = `<i data-lucide="calendar"></i> 업로드일: <strong>${photo.date}</strong>`;
+    if (downloadBtn) {
+      downloadBtn.href = photo.url;
+      downloadBtn.download = photo.name || `photo_${photo.id}.jpg`;
+    }
+
+    app.openModal('photoDetailModal');
+    if (window.lucide) lucide.createIcons();
   },
 
   renderChatSystem() {

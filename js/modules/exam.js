@@ -270,24 +270,71 @@ const examModule = {
     }, 30000); // refresh every 30 sec
   },
 
-  handlePhotoPreview(e) {
-    const files = Array.from(e.target.files);
-    this.uploadedPhotos = files;
+  handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('pdfDropzone');
+    if (dropzone) dropzone.classList.add('dragover');
+  },
 
+  handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('pdfDropzone');
+    if (dropzone) dropzone.classList.remove('dragover');
+  },
+
+  handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const dropzone = document.getElementById('pdfDropzone');
+    if (dropzone) dropzone.classList.remove('dragover');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      this.handlePhotoFiles(Array.from(e.dataTransfer.files));
+    }
+  },
+
+  handlePhotoPreview(e) {
+    if (e.target && e.target.files) {
+      this.handlePhotoFiles(Array.from(e.target.files));
+    }
+  },
+
+  handlePhotoFiles(files) {
+    const imgFiles = files.filter(f => f.type.startsWith('image/'));
+    if (imgFiles.length === 0) {
+      app.showToast('이미지 파일(JPG, PNG, GIF 등)을 선택해 주세요.', 'warning');
+      return;
+    }
+
+    this.uploadedPhotos = [...this.uploadedPhotos, ...imgFiles];
+    this.renderPhotoPreviews();
+  },
+
+  renderPhotoPreviews() {
     const grid = document.getElementById('pdfPhotoPreviewGrid');
     if (!grid) return;
 
     grid.innerHTML = '';
-    files.forEach(file => {
+    this.uploadedPhotos.forEach((file, index) => {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        const img = document.createElement('img');
-        img.src = evt.target.result;
-        img.className = 'photo-thumb';
-        grid.appendChild(img);
+        const wrap = document.createElement('div');
+        wrap.className = 'staged-photo-card';
+        wrap.style.height = '85px';
+        wrap.innerHTML = `
+          <img src="${evt.target.result}" alt="${file.name}">
+          <button type="button" class="staged-photo-remove" onclick="examModule.removeUploadedPhoto(${index})" title="삭제">&times;</button>
+        `;
+        grid.appendChild(wrap);
       };
       reader.readAsDataURL(file);
     });
+  },
+
+  removeUploadedPhoto(index) {
+    this.uploadedPhotos.splice(index, 1);
+    this.renderPhotoPreviews();
   },
 
   async generatePdfFromPhotos() {
