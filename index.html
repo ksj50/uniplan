@@ -26,7 +26,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260819_05">
+  <link rel="stylesheet" href="css/style.css?v=20260819_06">
 </head>
 <body class="dark-theme">
   <div id="app" class="app-layout">
@@ -1557,6 +1557,47 @@
         <button class="btn btn-secondary" onclick="app.closeModal('viewProjectDeadlineModal')">닫기</button>
       </div>
     </div>
+  <!-- Add Team Todo Modal -->
+  <div id="addTodoModal" class="modal-backdrop hidden">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3><i data-lucide="check-square"></i> 팀 프로젝트 To-Do 할 일 등록</h3>
+        <button class="modal-close-btn" onclick="app.closeModal('addTodoModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="input-group">
+          <label class="form-label">할 일 제목 <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="newTodoTitle" class="form-control" placeholder="예: Leaflet 중간지점 알고리즘 구현">
+        </div>
+        <div class="input-group">
+          <label class="form-label">우선순위 설정 <span style="color:var(--danger)">*</span></label>
+          <select id="newTodoPriority" class="form-control">
+            <option value="urgent">🚨 [긴급] 즉시 처리 필요</option>
+            <option value="high" selected>🔴 [높음] 주요 마일스톤</option>
+            <option value="medium">🟡 [보통] 일반 개발 및 서류</option>
+            <option value="low">🟢 [낮음] 부가/추후 작업</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="form-label">담당 팀원</label>
+          <select id="newTodoAssignee" class="form-control">
+            <option value="김대학(나)">김대학(나)</option>
+            <option value="이철수">이철수</option>
+            <option value="박영희">박영희</option>
+            <option value="정민우">정민우</option>
+            <option value="전체 팀원">전체 팀원 (공통)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label class="form-label">마감 목표일 (선택)</label>
+          <input type="date" id="newTodoDueDate" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="app.closeModal('addTodoModal')">취소</button>
+        <button class="btn btn-primary" onclick="projectsModule.saveNewTodo()"><i data-lucide="check"></i> 할 일 등록</button>
+      </div>
+    </div>
   </div>
 
   <!-- Gallery Photo Upload Modal (Drag & Drop + File Explorer) -->
@@ -1638,13 +1679,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260819_05"></script>
-  <script src="js/modules/semester.js?v=20260819_05"></script>
-  <script src="js/modules/exam.js?v=20260819_05"></script>
-  <script src="js/modules/projects.js?v=20260819_05"></script>
-  <script src="js/modules/admin.js?v=20260819_05"></script>
-  <script src="js/modules/studymode.js?v=20260819_05"></script>
-  <script src="js/app.js?v=20260819_05"></script>
+  <script src="js/modules/graduation.js?v=20260819_06"></script>
+  <script src="js/modules/semester.js?v=20260819_06"></script>
+  <script src="js/modules/exam.js?v=20260819_06"></script>
+  <script src="js/modules/projects.js?v=20260819_06"></script>
+  <script src="js/modules/admin.js?v=20260819_06"></script>
+  <script src="js/modules/studymode.js?v=20260819_06"></script>
+  <script src="js/app.js?v=20260819_06"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

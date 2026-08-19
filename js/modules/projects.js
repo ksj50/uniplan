@@ -56,9 +56,10 @@ const projectsModule = {
     pin: '7788',
     members: ['김대학(나)', '이철수', '박영희', '정민우'],
     todos: [
-      { id: 'td1', title: '프로젝트 요구사항 정의서 작성', assignee: '김대학(나)', done: true },
-      { id: 'td2', title: 'Leaflet 지도 API 연동 및 중간지점 산출 로직 구현', assignee: '이철수', done: false },
-      { id: 'td3', title: 'UI Glassmorphic CSS 스타일링 가이드 적용', assignee: '박영희', done: false }
+      { id: 'td1', title: '프로젝트 요구사항 정의서 작성', assignee: '김대학(나)', priority: 'high', done: true },
+      { id: 'td2', title: 'Leaflet 지도 API 연동 및 중간지점 산출 로직 구현', assignee: '이철수', priority: 'urgent', done: false },
+      { id: 'td3', title: 'UI Glassmorphic CSS 스타일링 가이드 적용', assignee: '박영희', priority: 'medium', done: false },
+      { id: 'td4', title: '팀 회의록 정리 및 주간 개발 보고서 공유', assignee: '정민우', priority: 'low', done: false }
     ],
     sharedLinks: [
       { id: 'l1', name: 'OpenAPI 공공데이터 명세서', url: 'https://data.go.kr/spec/1500', sender: '이철수', date: '2026-08-12 14:20' },
@@ -822,26 +823,149 @@ const projectsModule = {
     }
   },
 
+  draggedTodoId: null,
+
   renderTodoList() {
     const container = document.getElementById('teamTodoList');
     if (!container) return;
 
-    container.innerHTML = this.activeRoom.todos.map(t => `
-      <div class="activity-card mb-2" style="padding:0.75rem 1rem;">
-        <div style="display:flex; align-items:center; gap:0.8rem; width:100%;">
-          <input type="checkbox" ${t.done ? 'checked' : ''} onchange="projectsModule.toggleTodo('${t.id}')">
-          <div style="flex:1;">
-            <div style="font-size:0.88rem; ${t.done ? 'text-decoration:line-through; color:var(--text-muted);' : ''}">${t.title}</div>
-            <div class="text-xs text-muted">담당자: ${t.assignee}</div>
-          </div>
-          <span class="badge ${t.done ? 'badge-success' : 'badge-warning'}">${t.done ? '완료' : '진행 중'}</span>
+    const todos = this.activeRoom.todos || [];
+
+    if (todos.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:2rem; color:var(--text-muted); font-size:0.9rem;">
+          <i data-lucide="check-circle-2" style="width:36px; height:36px; opacity:0.4; margin-bottom:0.5rem;"></i>
+          <div>등록된 팀 프로젝트 To-Do가 없습니다.</div>
+          <button class="btn btn-sm btn-primary mt-2" onclick="projectsModule.addTodo()"><i data-lucide="plus"></i> 새 할 일 등록</button>
         </div>
-      </div>
-    `).join('');
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    const priorityConfig = {
+      urgent: { label: '🚨 긴급', class: 'urgent' },
+      high: { label: '🔴 높음', class: 'high' },
+      medium: { label: '🟡 보통', class: 'medium' },
+      low: { label: '🟢 낮음', class: 'low' }
+    };
+
+    container.innerHTML = todos.map(t => {
+      const p = priorityConfig[t.priority] || priorityConfig.medium;
+      return `
+        <div class="todo-item-card" 
+             draggable="true" 
+             data-id="${t.id}"
+             ondragstart="projectsModule.handleTodoDragStart(event, '${t.id}')"
+             ondragover="projectsModule.handleTodoDragOver(event)"
+             ondragleave="projectsModule.handleTodoDragLeave(event)"
+             ondrop="projectsModule.handleTodoDrop(event, '${t.id}')"
+             ondragend="projectsModule.handleTodoDragEnd(event)">
+          
+          <div class="todo-drag-handle" title="마우스로 끌어서 순서 변경">
+            <i data-lucide="grip-vertical" style="width:16px; height:16px;"></i>
+          </div>
+
+          <input type="checkbox" ${t.done ? 'checked' : ''} onchange="projectsModule.toggleTodo('${t.id}')" title="완료 여부 체크">
+
+          <div style="flex:1; min-width:0;">
+            <div style="font-size:0.9rem; font-weight:600; ${t.done ? 'text-decoration:line-through; color:var(--text-muted); opacity:0.6;' : 'color:#fff;'}">
+              ${t.title}
+            </div>
+            <div class="text-xs text-muted" style="margin-top:0.2rem; display:flex; gap:0.6rem; align-items:center;">
+              <span>👤 담당: <strong>${t.assignee}</strong></span>
+              ${t.dueDate ? `<span>📅 마감: ${t.dueDate}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- Priority Selector Dropdown -->
+          <select class="todo-priority-select ${p.class}" onchange="projectsModule.changeTodoPriority('${t.id}', this.value)" title="우선순위 변경">
+            <option value="urgent" ${t.priority === 'urgent' ? 'selected' : ''}>🚨 긴급</option>
+            <option value="high" ${t.priority === 'high' ? 'selected' : ''}>🔴 높음</option>
+            <option value="medium" ${t.priority === 'medium' ? 'selected' : ''}>🟡 보통</option>
+            <option value="low" ${t.priority === 'low' ? 'selected' : ''}>🟢 낮음</option>
+          </select>
+
+          <!-- Status badge -->
+          <span class="badge ${t.done ? 'badge-success' : 'badge-warning'}" style="font-size:0.75rem;">
+            ${t.done ? '완료' : '진행 중'}
+          </span>
+
+          <!-- Delete button -->
+          <button type="button" class="todo-actions-btn" onclick="projectsModule.deleteTodo('${t.id}', event)" title="할 일 삭제">
+            <i data-lucide="trash-2" style="width:15px; height:15px;"></i>
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  handleTodoDragStart(e, id) {
+    this.draggedTodoId = id;
+    e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  },
+
+  handleTodoDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    const card = e.currentTarget.closest('.todo-item-card');
+    if (card && !card.classList.contains('dragging')) {
+      card.classList.add('drag-over');
+    }
+  },
+
+  handleTodoDragLeave(e) {
+    const card = e.currentTarget.closest('.todo-item-card');
+    if (card) {
+      card.classList.remove('drag-over');
+    }
+  },
+
+  handleTodoDrop(e, targetId) {
+    e.preventDefault();
+    const card = e.currentTarget.closest('.todo-item-card');
+    if (card) card.classList.remove('drag-over');
+
+    const sourceId = this.draggedTodoId;
+    if (!sourceId || sourceId === targetId) return;
+
+    const todos = this.activeRoom.todos || [];
+    const sourceIndex = todos.findIndex(t => t.id === sourceId);
+    const targetIndex = todos.findIndex(t => t.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    // Move item in array
+    const [draggedItem] = todos.splice(sourceIndex, 1);
+    todos.splice(targetIndex, 0, draggedItem);
+
+    this.renderTodoList();
+    app.showToast('To-Do 우선순위 및 순서가 변경되었습니다.', 'info');
+  },
+
+  handleTodoDragEnd(e) {
+    this.draggedTodoId = null;
+    document.querySelectorAll('.todo-item-card').forEach(card => {
+      card.classList.remove('dragging', 'drag-over');
+    });
+  },
+
+  changeTodoPriority(id, newPriority) {
+    const todo = (this.activeRoom.todos || []).find(t => t.id === id);
+    if (todo) {
+      todo.priority = newPriority;
+      this.renderTodoList();
+      const labels = { urgent: '긴급', high: '높음', medium: '보통', low: '낮음' };
+      app.showToast(`[${todo.title}] 우선순위가 '${labels[newPriority]}'으로 변경되었습니다.`, 'success');
+    }
   },
 
   toggleTodo(id) {
-    const todo = this.activeRoom.todos.find(t => t.id === id);
+    const todo = (this.activeRoom.todos || []).find(t => t.id === id);
     if (todo) {
       todo.done = !todo.done;
       this.renderTodoList();
@@ -849,16 +973,54 @@ const projectsModule = {
   },
 
   addTodo() {
-    const title = prompt('새 To-Do 할 일 제목을 입력하세요:');
-    if (title && title.trim()) {
-      this.activeRoom.todos.push({
-        id: 'td' + Date.now(),
-        title: title.trim(),
-        assignee: '김대학(나)',
-        done: false
-      });
+    const titleInput = document.getElementById('newTodoTitle');
+    const prioritySelect = document.getElementById('newTodoPriority');
+    const assigneeSelect = document.getElementById('newTodoAssignee');
+    const dueDateInput = document.getElementById('newTodoDueDate');
+
+    if (titleInput) titleInput.value = '';
+    if (prioritySelect) prioritySelect.value = 'high';
+    if (assigneeSelect) assigneeSelect.value = '김대학(나)';
+    if (dueDateInput) dueDateInput.value = '';
+
+    app.openModal('addTodoModal');
+    if (window.lucide) lucide.createIcons();
+  },
+
+  saveNewTodo() {
+    const titleInput = document.getElementById('newTodoTitle');
+    const prioritySelect = document.getElementById('newTodoPriority');
+    const assigneeSelect = document.getElementById('newTodoAssignee');
+    const dueDateInput = document.getElementById('newTodoDueDate');
+
+    if (!titleInput || !titleInput.value.trim()) {
+      app.showToast('To-Do 할 일 제목을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const newTodo = {
+      id: 'td' + Date.now(),
+      title: titleInput.value.trim(),
+      assignee: assigneeSelect ? assigneeSelect.value : '김대학(나)',
+      priority: prioritySelect ? prioritySelect.value : 'high',
+      dueDate: dueDateInput ? dueDateInput.value : '',
+      done: false
+    };
+
+    if (!this.activeRoom.todos) this.activeRoom.todos = [];
+    this.activeRoom.todos.push(newTodo);
+
+    app.closeModal('addTodoModal');
+    this.renderTodoList();
+    app.showToast(`[${newTodo.title}] 새 To-Do가 추가되었습니다.`, 'success');
+  },
+
+  deleteTodo(id, e) {
+    if (e) e.stopPropagation();
+    if (confirm('이 To-Do 할 일을 목록에서 삭제하시겠습니까?')) {
+      this.activeRoom.todos = (this.activeRoom.todos || []).filter(t => t.id !== id);
       this.renderTodoList();
-      app.showToast('새 To-Do 항목이 추가되었습니다.', 'success');
+      app.showToast('To-Do 항목이 삭제되었습니다.', 'info');
     }
   },
 

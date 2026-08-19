@@ -938,6 +938,96 @@ body.light-theme .moon-icon { display: block; }
 .calendar-event-tag.type-presentation { background: rgba(168, 85, 247, 0.85); color: #fff; }
 .calendar-event-tag.type-etc { background: rgba(100, 116, 139, 0.85); color: #fff; }
 
+/* To-Do Item Drag & Drop and Priority Styling */
+.todo-item-card {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.6rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+}
+.todo-item-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+.todo-item-card.dragging {
+  opacity: 0.4;
+  transform: scale(0.98);
+  border: 2px dashed var(--primary);
+  background: rgba(99, 102, 241, 0.15);
+}
+.todo-item-card.drag-over {
+  border-top: 2px solid #818cf8;
+  background: rgba(99, 102, 241, 0.2);
+  transform: translateY(-2px);
+}
+.todo-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.todo-drag-handle:active {
+  cursor: grabbing;
+}
+.todo-drag-handle:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.todo-priority-select {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 20px;
+  cursor: pointer;
+  outline: none;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+.todo-priority-select.urgent {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+.todo-priority-select.high {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+.todo-priority-select.medium {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.5);
+}
+.todo-priority-select.low {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.5);
+}
+.todo-actions-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.3rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.todo-actions-btn:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Photo Gallery Grid & Cards */
 .photo-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.1rem; }
 .gallery-card { 
