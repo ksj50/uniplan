@@ -850,7 +850,7 @@ const projectsModule = {
       low: { label: '🟢 낮음', class: 'low' }
     };
 
-    container.innerHTML = todos.map(t => {
+    container.innerHTML = todos.map((t, idx) => {
       const p = priorityConfig[t.priority] || priorityConfig.medium;
       return `
         <div class="todo-item-card" 
@@ -867,6 +867,9 @@ const projectsModule = {
           </div>
 
           <input type="checkbox" ${t.done ? 'checked' : ''} onchange="projectsModule.toggleTodo('${t.id}')" title="완료 여부 체크">
+
+          <!-- Order Sequence Number Badge (1, 2, 3...) -->
+          <span class="todo-order-num" title="${idx + 1}번째 순서">${idx + 1}</span>
 
           <div style="flex:1; min-width:0;">
             <div style="font-size:0.9rem; font-weight:600; ${t.done ? 'text-decoration:line-through; color:var(--text-muted); opacity:0.6;' : 'color:#fff;'}">
