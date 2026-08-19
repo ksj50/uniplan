@@ -30,9 +30,31 @@ const app = {
   },
 
   renderDashboardAll() {
-    if (window.semesterModule) semesterModule.renderDashboardSchedule();
-    if (window.examModule) examModule.renderDashboardExamWidget();
-    if (window.projectsModule) projectsModule.renderDashboardTeamList();
+    try {
+      if (window.semesterModule && typeof semesterModule.renderDashboardSchedule === 'function') {
+        semesterModule.renderDashboardSchedule();
+      }
+    } catch (e) {
+      console.error('Error rendering dashboard schedule:', e);
+    }
+
+    try {
+      if (window.examModule && typeof examModule.renderDashboardExamWidget === 'function') {
+        examModule.renderDashboardExamWidget();
+      }
+    } catch (e) {
+      console.error('Error rendering dashboard exam:', e);
+    }
+
+    try {
+      if (window.projectsModule && typeof projectsModule.renderDashboardTeamList === 'function') {
+        projectsModule.renderDashboardTeamList();
+      }
+    } catch (e) {
+      console.error('Error rendering dashboard team list:', e);
+    }
+
+    if (window.lucide) lucide.createIcons();
   },
 
   checkOnboarding() {
