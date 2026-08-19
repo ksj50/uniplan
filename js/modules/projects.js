@@ -876,13 +876,17 @@ const projectsModule = {
     container.innerHTML = this.activeRoom.photos.map(p => `
       <div class="gallery-card" onclick="projectsModule.viewPhotoDetail('${p.id}')">
         <img src="${p.url}" alt="${p.name || 'Shared Photo'}" loading="lazy">
+        <div class="gallery-card-zoom-hint"><i data-lucide="zoom-in" style="width:14px;height:14px;"></i> 크게 보기</div>
         <div class="overlay">
           <div class="photo-meta">
             <span class="photo-uploader"><i data-lucide="user" style="width:12px;height:12px;"></i> ${p.uploader}</span>
             <span class="photo-date">${p.date}</span>
           </div>
           <div class="photo-actions" onclick="event.stopPropagation()">
-            <button class="btn-gallery-del" title="사진 삭제" onclick="projectsModule.deleteGalleryPhoto('${p.id}', event)">
+            <button class="btn-gallery-action btn-gallery-dl" title="사진 저장 (다운로드)" onclick="projectsModule.downloadPhoto('${p.url}', '${(p.name || 'photo_' + p.id).replace(/\s+/g, '_')}.jpg')">
+              <i data-lucide="download" style="width:13px;height:13px;"></i>
+            </button>
+            <button class="btn-gallery-action btn-gallery-del" title="사진 삭제" onclick="projectsModule.deleteGalleryPhoto('${p.id}', event)">
               <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
             </button>
           </div>
@@ -902,27 +906,70 @@ const projectsModule = {
     }
   },
 
+  currentViewingPhoto: null,
+
   viewPhotoDetail(id) {
     const photo = this.activeRoom.photos.find(p => p.id === id);
     if (!photo) return;
+    this.currentViewingPhoto = photo;
 
     const img = document.getElementById('photoDetailImg');
     const title = document.getElementById('photoDetailTitle');
     const uploader = document.getElementById('photoDetailUploader');
     const date = document.getElementById('photoDetailDate');
-    const downloadBtn = document.getElementById('photoDetailDownloadBtn');
 
     if (img) img.src = photo.url;
-    if (title) title.innerHTML = `<i data-lucide="image"></i> ${photo.name || '공유 사진'}`;
+    if (title) title.innerHTML = `<i data-lucide="image"></i> ${photo.name || '공유 사진 상세 보기'}`;
     if (uploader) uploader.innerHTML = `<i data-lucide="user"></i> 업로더: <strong>${photo.uploader}</strong>`;
     if (date) date.innerHTML = `<i data-lucide="calendar"></i> 업로드일: <strong>${photo.date}</strong>`;
-    if (downloadBtn) {
-      downloadBtn.href = photo.url;
-      downloadBtn.download = photo.name || `photo_${photo.id}.jpg`;
-    }
 
     app.openModal('photoDetailModal');
     if (window.lucide) lucide.createIcons();
+  },
+
+  async downloadPhoto(url, filename = 'uniplan_photo.jpg') {
+    try {
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        app.showToast('사진이 기기에 저장(다운로드)되었습니다!', 'success');
+        return;
+      }
+
+      // Fetch blob for CORS or remote image URLs
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      app.showToast('사진이 기기에 저장(다운로드)되었습니다!', 'success');
+    } catch (err) {
+      // Fallback in case of CORS restriction
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      app.showToast('사진 저장 창을 열었습니다.', 'info');
+    }
+  },
+
+  saveCurrentPhoto() {
+    if (!this.currentViewingPhoto) return;
+    const rawName = this.currentViewingPhoto.name || `photo_${this.currentViewingPhoto.id}`;
+    const filename = rawName.includes('.') ? rawName : `${rawName}.jpg`;
+    this.downloadPhoto(this.currentViewingPhoto.url, filename);
   },
 
   renderChatSystem() {

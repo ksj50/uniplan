@@ -1552,15 +1552,19 @@
         <button class="modal-close-btn" onclick="app.closeModal('photoDetailModal')">&times;</button>
       </div>
       <div class="modal-body photo-lightbox-body">
-        <img id="photoDetailImg" src="" alt="Detail Photo" class="lightbox-img">
+        <div class="lightbox-img-wrapper">
+          <img id="photoDetailImg" src="" alt="Detail Photo" class="lightbox-img">
+        </div>
         <div class="lightbox-meta">
           <span id="photoDetailUploader"><i data-lucide="user"></i> 업로더: -</span>
           <span id="photoDetailDate"><i data-lucide="calendar"></i> 업로드일: -</span>
         </div>
       </div>
-      <div class="modal-footer">
-        <a id="photoDetailDownloadBtn" href="" download="shared_photo.png" target="_blank" class="btn btn-secondary"><i data-lucide="download"></i> 사진 다운로드</a>
-        <button class="btn btn-primary" onclick="app.closeModal('photoDetailModal')">닫기</button>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <button type="button" class="btn btn-accent" onclick="projectsModule.saveCurrentPhoto()">
+          <i data-lucide="download"></i> 사진 저장 (PC 다운로드)
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('photoDetailModal')">닫기</button>
       </div>
     </div>
   </div>
