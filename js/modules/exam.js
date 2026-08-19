@@ -119,17 +119,32 @@ const examModule = {
     app.showToast(`시험 일정 [${subject}] (${examDate} ${status})가 성공적으로 등록되었습니다!`, 'success');
   },
 
-  saveNewNote() {
-    const title = document.getElementById('newNoteTitle').value.trim();
-    const content = document.getElementById('newNoteContent').value.trim();
+  async saveNewNote() {
+    const titleInput = document.getElementById('newNoteTitle');
+    const contentInput = document.getElementById('newNoteContent');
+    const photoInput = document.getElementById('notePhotoInput');
 
-    if (!title) {
-      app.showToast('노트 제목을 입력해 주세요!', 'warning');
+    const title = titleInput ? titleInput.value.trim() : '';
+    const content = contentInput ? contentInput.value.trim() : '';
+    const files = (photoInput && photoInput.files) ? Array.from(photoInput.files) : [];
+
+    if (!title && files.length === 0 && !content) {
+      app.showToast('노트 제목 또는 사진/메모를 입력해 주세요!', 'warning');
       return;
     }
 
+    const finalTitle = title || '시험 개념 정리 노트';
     app.closeModal('addNoteModal');
-    app.showToast(`개념 노트 [${title}] 저장 및 사진 PDF 수집이 완료되었습니다!`, 'success');
+
+    if (files.length > 0) {
+      this.uploadedPhotos = [...this.uploadedPhotos, ...files];
+      const pdfTitleEl = document.getElementById('pdfNoteTitle');
+      if (pdfTitleEl) pdfTitleEl.value = finalTitle;
+      this.renderPhotoPreviews();
+      await this.generatePdfFromPhotos(finalTitle, content);
+    } else {
+      await this.generatePdfFromTextOnly(finalTitle, content);
+    }
   },
 
   renderFirstExamHero() {
@@ -337,46 +352,164 @@ const examModule = {
     this.renderPhotoPreviews();
   },
 
-  async generatePdfFromPhotos() {
+  async generatePdfFromPhotos(customTitle = null, textNote = '') {
     const titleInput = document.getElementById('pdfNoteTitle');
-    const title = titleInput ? titleInput.value.trim() || '시험 개념 정리 노트' : '시험 개념 정리 노트';
+    const title = customTitle || (titleInput ? titleInput.value.trim() : '') || '시험 개념 요약 및 사진 노트';
 
-    if (this.uploadedPhotos.length === 0) {
+    if (this.uploadedPhotos.length === 0 && !textNote) {
       app.showToast('PDF로 합성할 사진 파일을 최하 1장 이상 선택해 주세요!', 'warning');
       return;
     }
 
-    app.showToast('개념 노트 사진을 PDF 문서로 합성 및 정리를 진행합니다...', 'info');
+    const btn = document.getElementById('generatePdfBtn');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<i data-lucide="loader" class="animate-spin"></i> PDF 문서 생성 및 렌더링 중...`;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    app.showToast('개념 노트 사진을 고화질 PDF 문서로 합성 및 렌더링을 진행합니다...', 'info');
 
     try {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      // 1. Get jsPDF constructor
+      const jsPDFClass = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+      if (!jsPDFClass) {
+        throw new Error('jsPDF 라이브러리를 찾을 수 없습니다.');
+      }
+
+      const pdf = new jsPDFClass('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      for (let i = 0; i < this.uploadedPhotos.length; i++) {
+      // High-res A4 canvas dimensions (1240 x 1754 px at 150 DPI)
+      const canvasWidth = 1240;
+      const canvasHeight = 1754;
+
+      const totalPages = Math.max(1, this.uploadedPhotos.length);
+
+      for (let i = 0; i < totalPages; i++) {
         const file = this.uploadedPhotos[i];
-        const dataUrl = await new Promise(resolve => {
-          const r = new FileReader();
-          r.onload = e => resolve(e.target.result);
-          r.readAsDataURL(file);
-        });
 
+        // Create high-res offscreen page canvas
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvasWidth;
+        pageCanvas.height = canvasHeight;
+        const ctx = pageCanvas.getContext('2d');
+
+        // Background: Clean white
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+        // Header Background Banner
+        ctx.fillStyle = '#f1f5f9';
+        ctx.fillRect(40, 40, canvasWidth - 80, 110);
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(40, 40, canvasWidth - 80, 110);
+
+        // Header Badge & Title
+        ctx.fillStyle = '#4f46e5';
+        ctx.font = 'bold 24px "Noto Sans KR", -apple-system, sans-serif';
+        ctx.fillText('UniPlan 스마트 시험 개념 노트', 65, 80);
+
+        ctx.fillStyle = '#0f172a';
+        ctx.font = 'bold 32px "Noto Sans KR", -apple-system, sans-serif';
+        const displayTitle = title.length > 32 ? title.substring(0, 32) + '...' : title;
+        ctx.fillText(displayTitle, 65, 125);
+
+        // Page info & Date on right
+        ctx.fillStyle = '#64748b';
+        ctx.font = '600 22px "Outfit", "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Page ${i + 1} of ${totalPages}`, canvasWidth - 65, 85);
+        ctx.font = '18px "Noto Sans KR", sans-serif';
+        const todayStr = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        ctx.fillText(`생성일: ${todayStr}`, canvasWidth - 65, 120);
+        ctx.textAlign = 'left'; // Reset
+
+        // If file exists, load and draw image with aspect ratio preservation
+        if (file) {
+          const imgDataUrl = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = e => resolve(e.target.result);
+            r.onerror = reject;
+            r.readAsDataURL(file);
+          });
+
+          const img = await new Promise((resolve, reject) => {
+            const image = new Image();
+            image.onload = () => resolve(image);
+            image.onerror = reject;
+            image.src = imgDataUrl;
+          });
+
+          // Compute max bounds for image area
+          const maxImgWidth = canvasWidth - 100;
+          const maxImgHeight = canvasHeight - 260; // Leaves room for header and footer
+
+          let drawWidth = img.naturalWidth || img.width;
+          let drawHeight = img.naturalHeight || img.height;
+
+          const ratio = Math.min(maxImgWidth / drawWidth, maxImgHeight / drawHeight);
+          drawWidth = drawWidth * ratio;
+          drawHeight = drawHeight * ratio;
+
+          const drawX = (canvasWidth - drawWidth) / 2;
+          const drawY = 175 + (maxImgHeight - drawHeight) / 2;
+
+          // Draw photo container shadow & frame
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+          ctx.fillRect(drawX - 6, drawY - 6, drawWidth + 12, drawHeight + 12);
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 1.5;
+          ctx.strokeRect(drawX, drawY, drawWidth, drawHeight);
+
+          // Draw Image
+          ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+        } else if (textNote) {
+          // Render text note
+          ctx.fillStyle = '#1e293b';
+          ctx.font = '24px "Noto Sans KR", sans-serif';
+          const lines = textNote.split('\n');
+          let yPos = 200;
+          lines.forEach(line => {
+            ctx.fillText(line, 65, yPos);
+            yPos += 36;
+          });
+        }
+
+        // Footer
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '16px "Noto Sans KR", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('UniPlan - 대학 생활 통합 플래너 & 시험 개념 관리 시스템', canvasWidth / 2, canvasHeight - 40);
+        ctx.textAlign = 'left';
+
+        // Add page to PDF
         if (i > 0) pdf.addPage();
-
-        // Header Title
-        pdf.setFontSize(14);
-        pdf.text(`${title} (페이지 ${i + 1}/${this.uploadedPhotos.length})`, 10, 15);
-
-        // Add Image
-        pdf.addImage(dataUrl, 'JPEG', 10, 25, pdfWidth - 20, pdfHeight - 40);
+        const pageDataUrl = pageCanvas.toDataURL('image/jpeg', 0.92);
+        pdf.addImage(pageDataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       }
 
-      pdf.save(`${title.replace(/\s+/g, '_')}_개념정리.pdf`);
-      app.showToast(`[${title}] PDF 파일 생성이 완료되어 다운로드되었습니다!`, 'success');
+      // Download PDF
+      const sanitizedFilename = `${title.replace(/[\/\\:*?"<>|]/g, '_').replace(/\s+/g, '_')}_개념노트.pdf`;
+      pdf.save(sanitizedFilename);
+
+      app.showToast(`🎉 [${title}] 고화질 PDF 문서가 성공적으로 생성 및 다운로드되었습니다!`, 'success');
     } catch (err) {
-      console.error(err);
-      app.showToast('PDF 생성 중 오류가 발생하였습니다.', 'danger');
+      console.error('PDF Generation Error:', err);
+      app.showToast('PDF 생성 중 오류가 발생하였습니다: ' + (err.message || '사진 형식을 확인해 주세요.'), 'danger');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="file-down"></i> 업로드 사진 PDF로 합성 및 다운로드`;
+        if (window.lucide) lucide.createIcons();
+      }
     }
+  },
+
+  async generatePdfFromTextOnly(title, content) {
+    this.uploadedPhotos = [];
+    await this.generatePdfFromPhotos(title, content);
   }
 };
