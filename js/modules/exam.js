@@ -225,6 +225,9 @@ const examModule = {
       `;
     }).join('');
 
+    if (window.lucide) lucide.createIcons();
+  },
+
   setExamViewMode(mode) {
     this.currentViewMode = mode;
     const btnCal = document.getElementById('btnExamViewCalendar');
