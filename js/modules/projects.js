@@ -647,7 +647,12 @@ const projectsModule = {
   },
 
   uploadGalleryPhoto() {
-    this.openPhotoUploadModal();
+    const fileInput = document.getElementById('galleryFileInputDirect');
+    if (fileInput) {
+      fileInput.click();
+    } else {
+      this.openPhotoUploadModal();
+    }
   },
 
   handleDragOver(e) {
@@ -694,8 +699,7 @@ const projectsModule = {
     const hint = document.getElementById('galleryInlineDropzone');
     if (hint) hint.classList.remove('dragover');
     if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      this.openPhotoUploadModal();
-      this.processFiles(e.dataTransfer.files);
+      this.uploadFilesDirectly(e.dataTransfer.files);
     }
   },
 
@@ -707,9 +711,47 @@ const projectsModule = {
 
   handleDirectFilesSelected(e) {
     if (e.target && e.target.files && e.target.files.length > 0) {
-      this.openPhotoUploadModal();
-      this.processFiles(e.target.files);
+      this.uploadFilesDirectly(e.target.files);
+      e.target.value = '';
     }
+  },
+
+  uploadFilesDirectly(fileList) {
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) {
+      app.showToast('이미지 파일(JPG, PNG, GIF, WEBP 등)만 업로드할 수 있습니다.', 'warning');
+      return;
+    }
+
+    let uploader = '김대학(나)';
+    const saved = localStorage.getItem('uniplan_user_profile');
+    if (saved) {
+      try {
+        const profile = JSON.parse(saved);
+        if (profile.name) uploader = `${profile.name}(나)`;
+      } catch (e) {}
+    }
+    const todayStr = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+
+    let loadedCount = 0;
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        this.activeRoom.photos.unshift({
+          id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          url: evt.target.result,
+          name: file.name,
+          uploader: uploader,
+          date: todayStr
+        });
+        loadedCount++;
+        if (loadedCount === files.length) {
+          this.renderPhotoGallery();
+          app.showToast(`${files.length}장의 사진이 성공적으로 업로드되었습니다!`, 'success');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   },
 
   processFiles(fileList) {
