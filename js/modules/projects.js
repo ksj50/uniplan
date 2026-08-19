@@ -135,6 +135,38 @@ const projectsModule = {
     this.renderTeamRoomWorkspace();
     this.renderMemberLocInputs();
     this.initPinInputs();
+    this.renderDashboardTeamList();
+  },
+
+  renderDashboardTeamList() {
+    const container = document.getElementById('dashboardTeamList');
+    if (!container) return;
+
+    container.innerHTML = `
+      <div class="dashboard-team-cards-grid" style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div class="activity-card" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="app.navigateTo('teamproject'); projectsModule.enterTeamRoom('team1')">
+          <div class="activity-main">
+            <div class="title" style="font-size:0.9rem; display:flex; align-items:center; gap:0.4rem;">
+              <span class="badge badge-primary">교내 팀플</span>
+              <strong>웹 프론트엔드 실습 캡스톤 A팀</strong>
+            </div>
+            <div class="summary text-xs text-muted" style="margin-top:0.2rem;">팀원 4명 (김대학, 이철수, 박영희, 정민우) | 다음 회의: 8월 21일(금) 14:00</div>
+          </div>
+          <button class="btn btn-xs btn-outline">팀 룸 입장 &rarr;</button>
+        </div>
+        <div class="activity-card" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="app.navigateTo('extracurricular')">
+          <div class="activity-main">
+            <div class="title" style="font-size:0.9rem; display:flex; align-items:center; gap:0.4rem;">
+              <span class="badge badge-accent">대외 활동</span>
+              <strong>2026 대학생 SW & AI 융합 해커톤</strong>
+            </div>
+            <div class="summary text-xs text-muted" style="margin-top:0.2rem;">제출 마감: D-12 | 기획서 및 프로토타입 개발 중</div>
+          </div>
+          <button class="btn btn-xs btn-outline">상세보기 &rarr;</button>
+        </div>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
   },
 
   onUniversityChange(val) {

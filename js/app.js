@@ -23,9 +23,16 @@ const app = {
     if (window.adminModule) adminModule.init();
     if (window.studyModeModule) studyModeModule.init();
 
+    this.renderDashboardAll();
     this.renderNotifications();
     this.checkOnboarding();
     console.log('UniPlan Application Initialized Successfully.');
+  },
+
+  renderDashboardAll() {
+    if (window.semesterModule) semesterModule.renderDashboardSchedule();
+    if (window.examModule) examModule.renderDashboardExamWidget();
+    if (window.projectsModule) projectsModule.renderDashboardTeamList();
   },
 
   checkOnboarding() {
@@ -252,8 +259,8 @@ const app = {
     document.getElementById('pageTitle').innerText = info.title;
     document.getElementById('pageSubtitle').innerText = info.sub;
 
-    if (viewId === 'dashboard' && window.examModule) {
-      examModule.renderDashboardExamWidget();
+    if (viewId === 'dashboard') {
+      this.renderDashboardAll();
     }
 
     if (viewId === 'exam' && window.examModule) {
