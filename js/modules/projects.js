@@ -79,6 +79,11 @@ const projectsModule = {
     photos: [
       { id: 'p1', url: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400', uploader: '박영희', date: '2026-08-12' },
       { id: 'p2', url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=400', uploader: '김대학(나)', date: '2026-08-13' }
+    ],
+    deadlines: [
+      { id: 'dl1', title: '산학 과제 중간 점검 보고서', date: '2026-08-20', time: '18:00', type: 'midterm', assignee: '김대학, 이철수' },
+      { id: 'dl2', title: 'UI 프로토타입 팀원 피드백 회의', date: '2026-08-25', time: '15:00', type: 'meeting', assignee: '전체 팀원' },
+      { id: 'dl3', title: '최종 캡스톤 결과물 코드 및 발표자료 제출', date: '2026-08-30', time: '23:59', type: 'final', assignee: '전체 팀원' }
     ]
   },
 
@@ -534,10 +539,287 @@ const projectsModule = {
 
   renderTeamRoomWorkspace() {
     this.renderTodoList();
+    this.renderProjectCalendar();
     this.renderSharedLinks();
     this.renderPhotoGallery();
     this.renderChatSystem();
     this.renderAvailabilityMatrix();
+  },
+
+  calendarYear: 2026,
+  calendarMonth: 7, // 0-indexed (August is 7)
+
+  koreanHolidays: {
+    '2026-01-01': { name: '신정', isRed: true },
+    '2026-02-16': { name: '설날연휴', isRed: true },
+    '2026-02-17': { name: '설날', isRed: true },
+    '2026-02-18': { name: '설날연휴', isRed: true },
+    '2026-03-01': { name: '삼일절', isRed: true },
+    '2026-05-05': { name: '어린이날', isRed: true },
+    '2026-05-24': { name: '부처님오신날', isRed: true },
+    '2026-06-06': { name: '현충일', isRed: true },
+    '2026-08-07': { name: '입추', isRed: false },
+    '2026-08-14': { name: '말복', isRed: false },
+    '2026-08-15': { name: '광복절', isRed: true },
+    '2026-08-17': { name: '대체 휴일', isRed: true },
+    '2026-08-23': { name: '처서', isRed: false },
+    '2026-09-07': { name: '백로', isRed: false },
+    '2026-09-24': { name: '추석연휴', isRed: true },
+    '2026-09-25': { name: '추석', isRed: true },
+    '2026-09-26': { name: '추석연휴', isRed: true },
+    '2026-10-03': { name: '개천절', isRed: true },
+    '2026-10-08': { name: '한로', isRed: false },
+    '2026-10-09': { name: '한글날', isRed: true },
+    '2026-10-23': { name: '상강', isRed: false },
+    '2026-11-07': { name: '입동', isRed: false },
+    '2026-11-22': { name: '소설', isRed: false },
+    '2026-12-07': { name: '대설', isRed: false },
+    '2026-12-21': { name: '동지', isRed: false },
+    '2026-12-25': { name: '성탄절', isRed: true }
+  },
+
+  renderProjectCalendar() {
+    const container = document.getElementById('teamProjectCalendar');
+    if (!container) return;
+
+    const year = this.calendarYear;
+    const month = this.calendarMonth; // 0-indexed
+    const monthDisplay = String(month + 1).padStart(2, '0');
+
+    // First day of current month (0: Sun, 1: Mon, ...)
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    // Total days in current month
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    // Total days in previous month
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    // Today info for highlight (defaulting to 2026-08-19 or actual current day)
+    const today = new Date();
+    const isCurrentYearMonth = (year === today.getFullYear() && month === today.getMonth());
+    const todayDate = today.getDate();
+
+    const deadlines = this.activeRoom.deadlines || [];
+
+    let cellsHtml = '';
+
+    // 1. Previous month trailing days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const pDay = prevMonthTotalDays - i;
+      const prevMonth = month === 0 ? 11 : month - 1;
+      const prevYear = month === 0 ? year - 1 : year;
+      const dateStr = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}-${String(pDay).padStart(2, '0')}`;
+      const dayOfWeek = (firstDayIndex - 1 - i) % 7;
+      const isSun = dayOfWeek === 0;
+      const isSat = dayOfWeek === 6;
+
+      cellsHtml += `
+        <div class="calendar-day-cell other-month" onclick="projectsModule.openAddDeadlineModal('${dateStr}')">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${isSun ? 'sun' : isSat ? 'sat' : ''}">${pDay}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Current month days
+    for (let day = 1; day <= totalDays; day++) {
+      const dateStr = `${year}-${monthDisplay}-${String(day).padStart(2, '0')}`;
+      const dayOfWeek = (firstDayIndex + day - 1) % 7;
+      const isSun = dayOfWeek === 0;
+      const isSat = dayOfWeek === 6;
+      const isToday = (isCurrentYearMonth && day === todayDate) || (year === 2026 && month === 7 && day === 19);
+
+      const holiday = this.koreanHolidays[dateStr];
+      const dayDeadlines = deadlines.filter(d => d.date === dateStr);
+
+      cellsHtml += `
+        <div class="calendar-day-cell ${isToday ? 'today' : ''}" onclick="projectsModule.openAddDeadlineModal('${dateStr}')" title="${dateStr} - 클릭하여 마감 일정 등록">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${isSun || (holiday && holiday.isRed) ? 'sun' : isSat ? 'sat' : ''}">${day}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
+          </div>
+          <div class="calendar-cell-events">
+            ${dayDeadlines.map(d => `
+              <div class="calendar-event-tag type-${d.type || 'etc'}" onclick="projectsModule.viewDeadlineDetail('${d.id}', event)" title="${d.title} (${d.time || '종일'})">
+                <span>${d.title}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Next month leading days to complete grid
+    const totalRendered = firstDayIndex + totalDays;
+    const nextDaysCount = (7 - (totalRendered % 7)) % 7;
+    for (let nDay = 1; nDay <= nextDaysCount; nDay++) {
+      const nextMonth = month === 11 ? 0 : month + 1;
+      const nextYear = month === 11 ? year + 1 : year;
+      const dateStr = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-${String(nDay).padStart(2, '0')}`;
+      const dayOfWeek = (totalRendered + nDay - 1) % 7;
+      const isSun = dayOfWeek === 0;
+      const isSat = dayOfWeek === 6;
+
+      cellsHtml += `
+        <div class="calendar-day-cell other-month" onclick="projectsModule.openAddDeadlineModal('${dateStr}')">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${isSun ? 'sun' : isSat ? 'sat' : ''}">${nDay}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = `
+      <div class="calendar-nav-bar">
+        <div class="calendar-nav-left">
+          <button type="button" class="calendar-nav-btn" onclick="projectsModule.goToTodayCalendar()">오늘</button>
+          <button type="button" class="calendar-nav-btn" onclick="projectsModule.changeCalendarMonth(-1)"><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+          <span class="calendar-nav-title">${year}.${monthDisplay}</span>
+          <button type="button" class="calendar-nav-btn" onclick="projectsModule.changeCalendarMonth(1)"><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+        </div>
+        <div style="font-size:0.75rem; color:var(--text-muted);">
+          <span style="color:#f87171; font-weight:700;">● 마감</span> &nbsp;
+          <span style="color:#60a5fa; font-weight:700;">● 회의</span> &nbsp;
+          <span style="color:#f59e0b; font-weight:700;">● 과제</span>
+        </div>
+      </div>
+      <div class="calendar-grid-header">
+        <div class="calendar-header-day sun">일</div>
+        <div class="calendar-header-day">월</div>
+        <div class="calendar-header-day">화</div>
+        <div class="calendar-header-day">수</div>
+        <div class="calendar-header-day">목</div>
+        <div class="calendar-header-day">금</div>
+        <div class="calendar-header-day sat">토</div>
+      </div>
+      <div class="calendar-grid-body">
+        ${cellsHtml}
+      </div>
+    `;
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  changeCalendarMonth(delta) {
+    let newMonth = this.calendarMonth + delta;
+    let newYear = this.calendarYear;
+
+    if (newMonth > 11) {
+      newMonth = 0;
+      newYear++;
+    } else if (newMonth < 0) {
+      newMonth = 11;
+      newYear--;
+    }
+
+    this.calendarMonth = newMonth;
+    this.calendarYear = newYear;
+    this.renderProjectCalendar();
+  },
+
+  goToTodayCalendar() {
+    const today = new Date();
+    this.calendarYear = today.getFullYear();
+    this.calendarMonth = today.getMonth();
+    this.renderProjectCalendar();
+    app.showToast('오늘 날짜 달력으로 이동했습니다.', 'info');
+  },
+
+  openAddDeadlineModal(targetDateStr = '') {
+    const dateInput = document.getElementById('newDeadlineDate');
+    const titleInput = document.getElementById('newDeadlineTitle');
+    const typeSelect = document.getElementById('newDeadlineType');
+    const assigneeInput = document.getElementById('newDeadlineAssignee');
+
+    if (titleInput) titleInput.value = '';
+    if (assigneeInput) assigneeInput.value = '김대학(나)';
+    if (typeSelect) typeSelect.value = 'final';
+
+    if (dateInput) {
+      dateInput.value = targetDateStr || `${this.calendarYear}-${String(this.calendarMonth + 1).padStart(2, '0')}-19`;
+    }
+
+    app.openModal('addProjectDeadlineModal');
+    if (window.lucide) lucide.createIcons();
+  },
+
+  saveNewDeadline() {
+    const titleInput = document.getElementById('newDeadlineTitle');
+    const dateInput = document.getElementById('newDeadlineDate');
+    const timeInput = document.getElementById('newDeadlineTime');
+    const typeSelect = document.getElementById('newDeadlineType');
+    const assigneeInput = document.getElementById('newDeadlineAssignee');
+
+    if (!titleInput || !titleInput.value.trim()) {
+      app.showToast('일정 / 마감 제목을 입력해 주세요!', 'warning');
+      return;
+    }
+    if (!dateInput || !dateInput.value) {
+      app.showToast('마감 일자를 선택해 주세요!', 'warning');
+      return;
+    }
+
+    const newDeadline = {
+      id: 'dl_' + Date.now(),
+      title: titleInput.value.trim(),
+      date: dateInput.value,
+      time: timeInput ? timeInput.value : '18:00',
+      type: typeSelect ? typeSelect.value : 'final',
+      assignee: assigneeInput ? assigneeInput.value.trim() : '김대학(나)'
+    };
+
+    if (!this.activeRoom.deadlines) this.activeRoom.deadlines = [];
+    this.activeRoom.deadlines.push(newDeadline);
+
+    app.closeModal('addProjectDeadlineModal');
+    this.renderProjectCalendar();
+    app.showToast(`[${newDeadline.title}] 일정이 달력에 등록되었습니다!`, 'success');
+  },
+
+  viewDeadlineDetail(id, e) {
+    if (e) e.stopPropagation();
+    const deadline = (this.activeRoom.deadlines || []).find(d => d.id === id);
+    if (!deadline) return;
+
+    const body = document.getElementById('viewDeadlineModalBody');
+    const deleteBtn = document.getElementById('btnDeleteDeadline');
+
+    const typeLabels = {
+      final: '🔥 최종 마감일 (D-Day)',
+      midterm: '📝 과제 / 중간 점검',
+      meeting: '👥 팀 회의 및 미팅',
+      presentation: '🎤 발표 / 데모 데이',
+      etc: '📌 기타 일정'
+    };
+
+    if (body) {
+      body.innerHTML = `
+        <div style="background:rgba(255,255,255,0.05); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+          <div style="font-size:1.1rem; font-weight:800; margin-bottom:0.5rem; color:#fff;">${deadline.title}</div>
+          <div style="display:flex; flex-direction:column; gap:0.4rem; font-size:0.85rem; color:var(--text-muted);">
+            <div>📅 일자: <strong style="color:var(--primary);">${deadline.date}</strong> (${deadline.time || '종일'})</div>
+            <div>🏷️ 구분: <strong>${typeLabels[deadline.type] || deadline.type}</strong></div>
+            <div>👤 담당자/메모: <strong>${deadline.assignee || '전체 팀원'}</strong></div>
+          </div>
+        </div>
+      `;
+    }
+
+    if (deleteBtn) {
+      deleteBtn.onclick = () => projectsModule.deleteDeadline(id);
+    }
+
+    app.openModal('viewProjectDeadlineModal');
+    if (window.lucide) lucide.createIcons();
+  },
+
+  deleteDeadline(id) {
+    if (confirm('이 프로젝트 일정을 달력에서 삭제하시겠습니까?')) {
+      this.activeRoom.deadlines = (this.activeRoom.deadlines || []).filter(d => d.id !== id);
+      app.closeModal('viewProjectDeadlineModal');
+      this.renderProjectCalendar();
+      app.showToast('프로젝트 일정이 삭제되었습니다.', 'info');
+    }
   },
 
   renderTodoList() {
@@ -1395,7 +1677,10 @@ const projectsModule = {
     if (activeBtn) activeBtn.classList.add('active');
     if (activeContent) activeContent.classList.add('active');
 
-    if (tabId === 'location') {
+    if (tabId === 'overview') {
+      this.renderProjectCalendar();
+      this.renderTodoList();
+    } else if (tabId === 'location') {
       setTimeout(() => this.initMapIfNeeded(), 200);
     }
   },
