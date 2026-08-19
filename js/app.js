@@ -252,6 +252,12 @@ const app = {
     document.getElementById('pageTitle').innerText = info.title;
     document.getElementById('pageSubtitle').innerText = info.sub;
 
+    if (viewId === 'exam' && window.examModule) {
+      examModule.populateSubjectSelect();
+      examModule.renderReviewTopics();
+      examModule.renderSubjectList();
+    }
+
     if (viewId === 'teamproject' && window.projectsModule) {
       projectsModule.renderProjectCalendar();
       projectsModule.renderTodoList();

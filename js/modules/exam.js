@@ -206,34 +206,268 @@ const examModule = {
 
   populateSubjectSelect() {
     const select = document.getElementById('examSubjectSelect');
-    if (!select) return;
+    const modalSelect = document.getElementById('modalTopicSubject');
+    
+    const optionsHtml = this.subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 
-    select.innerHTML = this.subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    if (select) {
+      const currentVal = select.value;
+      select.innerHTML = optionsHtml;
+      if (currentVal && this.subjects.some(s => s.id === currentVal)) {
+        select.value = currentVal;
+      }
+    }
+
+    if (modalSelect) {
+      modalSelect.innerHTML = optionsHtml;
+    }
   },
 
   renderReviewTopics() {
     const select = document.getElementById('examSubjectSelect');
     const container = document.getElementById('reviewTopicList');
-    if (!select || !container) return;
+    if (!container) return;
 
-    const subId = select.value || this.subjects[0].id;
+    const subId = (select && select.value) || (this.subjects[0] ? this.subjects[0].id : null);
+    if (!subId) {
+      container.innerHTML = '<div class="text-center text-muted p-4">등록된 시험 과목이 없습니다.</div>';
+      return;
+    }
+
     const subject = this.subjects.find(s => s.id === subId);
     if (!subject) return;
 
-    container.innerHTML = subject.topics.map(t => `
-      <div class="activity-card mb-2" style="padding:0.75rem 1rem;">
-        <div class="activity-main">
-          <div class="title" style="font-size:0.88rem;">${t.title}</div>
-          <div class="activity-meta" style="margin-top:0.3rem;">
-            <span class="badge badge-success">${t.reviews}회독 완료</span>
+    if (!subject.topics || subject.topics.length === 0) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:2rem 1rem; background:rgba(255,255,255,0.02); border-radius:var(--radius-md); border:1px dashed var(--border-color);">
+          <i data-lucide="book-open" style="width:36px; height:36px; color:var(--text-muted); margin-bottom:0.5rem;"></i>
+          <h4 style="font-size:0.95rem; color:#fff; font-weight:600;">[${subject.name}] 등록된 시험 범위가 없습니다.</h4>
+          <p class="text-xs text-muted" style="margin:0.4rem 0 1rem 0;">위의 빠른 입력창 또는 아래 버튼을 눌러 첫 번째 시험 범위를 추가하세요!</p>
+          <button type="button" class="btn btn-sm btn-primary" onclick="examModule.openAddTopicModal('${subject.id}')">
+            <i data-lucide="plus"></i> 첫 시험 범위 추가하기
+          </button>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = subject.topics.map((t, idx) => {
+      const target = t.targetReviews || 3;
+      const current = t.reviews || 0;
+      const progressPercent = Math.min(100, Math.round((current / target) * 100));
+      const isCompleted = current >= target;
+
+      // Generate 1..target (or up to 5) clickable round pills
+      const maxPills = Math.max(target, 5);
+      let pillsHtml = '';
+      for (let r = 1; r <= maxPills; r++) {
+        const isActive = r <= current;
+        pillsHtml += `
+          <button type="button" 
+                  class="round-pill-btn ${isActive ? 'active' : ''}" 
+                  onclick="examModule.setExactReview('${subId}', '${t.id}', ${r})"
+                  title="${r}회독 달성 토글">
+            ${isActive ? `✓ ${r}회독` : `${r}회독`}
+          </button>
+        `;
+      }
+
+      return `
+        <div class="review-topic-card" data-topic-id="${t.id}">
+          <div class="review-topic-header">
+            <div class="review-topic-title">
+              <span style="color:var(--accent); font-size:0.8rem; font-family:'Outfit',sans-serif; background:rgba(99,102,241,0.15); border:1px solid rgba(99,102,241,0.3); border-radius:4px; padding:0.1rem 0.4rem;">#${idx + 1}</span>
+              <span>${t.title}</span>
+            </div>
+            <div class="review-topic-actions">
+              <button type="button" class="btn btn-xs btn-outline" onclick="examModule.openEditTopicModal('${subId}', '${t.id}')" title="범위 수정">
+                <i data-lucide="edit-3" style="width:13px; height:13px;"></i> 수정
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-danger" onclick="examModule.deleteTopic('${subId}', '${t.id}')" title="삭제">
+                <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress bar -->
+          <div class="review-progress-mini">
+            <div class="review-progress-bar" style="width: ${progressPercent}%;"></div>
+          </div>
+
+          <!-- Pills and controls -->
+          <div class="review-pills-row">
+            <div class="review-round-pills">
+              ${pillsHtml}
+            </div>
+
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span class="text-xs ${isCompleted ? 'text-success font-bold' : 'text-muted'}">
+                ${current}/${target}회독 (${progressPercent}%) ${isCompleted ? '🎉 완료!' : ''}
+              </span>
+              <button type="button" class="btn btn-xs btn-secondary" style="padding:0.2rem 0.4rem;" onclick="examModule.updateReview('${subId}', '${t.id}', -1)" title="1회독 감소">-1</button>
+              <button type="button" class="btn btn-xs btn-primary" style="padding:0.2rem 0.4rem;" onclick="examModule.updateReview('${subId}', '${t.id}', 1)" title="1회독 증가">+1</button>
+            </div>
           </div>
         </div>
-        <div style="display:flex; gap:0.4rem;">
-          <button class="btn btn-xs btn-secondary" onclick="examModule.updateReview('${subId}', '${t.id}', -1)">-1회독</button>
-          <button class="btn btn-xs btn-primary" onclick="examModule.updateReview('${subId}', '${t.id}', 1)">+1회독 달성</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
+
+    if (window.lucide) lucide.createIcons();
+  },
+
+  setExactReview(subId, topicId, round) {
+    const sub = this.subjects.find(s => s.id === subId);
+    if (!sub) return;
+    const topic = sub.topics.find(t => t.id === topicId);
+    if (!topic) return;
+
+    if (topic.reviews === round) {
+      topic.reviews = round - 1;
+    } else {
+      topic.reviews = round;
+    }
+
+    this.renderReviewTopics();
+    app.showToast(`[${topic.title}] 회독이 ${topic.reviews}회독으로 설정되었습니다.`, 'success');
+  },
+
+  quickAddTopic() {
+    const titleInput = document.getElementById('quickTopicTitle');
+    const targetSelect = document.getElementById('quickTopicTarget');
+    const subjectSelect = document.getElementById('examSubjectSelect');
+
+    const title = titleInput ? titleInput.value.trim() : '';
+    if (!title) {
+      app.showToast('추가할 시험 범위/단원 제목을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const subId = subjectSelect ? subjectSelect.value : (this.subjects[0] ? this.subjects[0].id : null);
+    const subject = this.subjects.find(s => s.id === subId);
+    if (!subject) return;
+
+    if (!subject.topics) subject.topics = [];
+
+    const target = targetSelect ? parseInt(targetSelect.value) : 3;
+
+    subject.topics.push({
+      id: 't_' + Date.now(),
+      title: title,
+      reviews: 0,
+      targetReviews: target || 3
+    });
+
+    titleInput.value = '';
+    this.renderReviewTopics();
+    app.showToast(`[${subject.name}]에 '${title}' 시험 범위가 추가되었습니다!`, 'success');
+  },
+
+  openAddTopicModal(targetSubId = null) {
+    this.populateSubjectSelect();
+    const modalSelect = document.getElementById('modalTopicSubject');
+    const currentSub = targetSubId || (document.getElementById('examSubjectSelect') ? document.getElementById('examSubjectSelect').value : null);
+    if (modalSelect && currentSub) modalSelect.value = currentSub;
+
+    const titleInput = document.getElementById('modalTopicTitle');
+    if (titleInput) titleInput.value = '';
+
+    const initialRevInput = document.getElementById('modalTopicInitialReviews');
+    if (initialRevInput) initialRevInput.value = 0;
+
+    app.openModal('addReviewTopicModal');
+  },
+
+  saveNewTopicFromModal() {
+    const subId = document.getElementById('modalTopicSubject')?.value;
+    const title = document.getElementById('modalTopicTitle')?.value.trim();
+    const target = parseInt(document.getElementById('modalTopicTarget')?.value || '3');
+    const initialReviews = parseInt(document.getElementById('modalTopicInitialReviews')?.value || '0');
+
+    if (!title) {
+      app.showToast('시험 범위/단원 명칭을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const subject = this.subjects.find(s => s.id === subId);
+    if (!subject) return;
+
+    if (!subject.topics) subject.topics = [];
+
+    subject.topics.push({
+      id: 't_' + Date.now(),
+      title: title,
+      reviews: Math.max(0, initialReviews),
+      targetReviews: target
+    });
+
+    const mainSelect = document.getElementById('examSubjectSelect');
+    if (mainSelect) mainSelect.value = subId;
+
+    app.closeModal('addReviewTopicModal');
+    this.renderReviewTopics();
+    app.showToast(`[${subject.name}] 시험 범위 '${title}'이(가) 등록되었습니다!`, 'success');
+  },
+
+  openEditTopicModal(subId, topicId) {
+    const sub = this.subjects.find(s => s.id === subId);
+    if (!sub) return;
+    const topic = sub.topics.find(t => t.id === topicId);
+    if (!topic) return;
+
+    document.getElementById('editTopicSubId').value = subId;
+    document.getElementById('editTopicId').value = topicId;
+    document.getElementById('editTopicTitle').value = topic.title;
+    document.getElementById('editTopicTarget').value = topic.targetReviews || 3;
+    document.getElementById('editTopicReviews').value = topic.reviews || 0;
+
+    app.openModal('editReviewTopicModal');
+  },
+
+  saveEditedTopic() {
+    const subId = document.getElementById('editTopicSubId')?.value;
+    const topicId = document.getElementById('editTopicId')?.value;
+    const title = document.getElementById('editTopicTitle')?.value.trim();
+    const target = parseInt(document.getElementById('editTopicTarget')?.value || '3');
+    const reviews = parseInt(document.getElementById('editTopicReviews')?.value || '0');
+
+    if (!title) {
+      app.showToast('단원 명칭을 입력해 주세요!', 'warning');
+      return;
+    }
+
+    const sub = this.subjects.find(s => s.id === subId);
+    if (!sub) return;
+    const topic = sub.topics.find(t => t.id === topicId);
+    if (!topic) return;
+
+    topic.title = title;
+    topic.targetReviews = target;
+    topic.reviews = Math.max(0, reviews);
+
+    app.closeModal('editReviewTopicModal');
+    this.renderReviewTopics();
+    app.showToast(`'${title}' 시험 범위가 수정되었습니다!`, 'success');
+  },
+
+  deleteTopic(subId, topicId) {
+    const sub = this.subjects.find(s => s.id === subId);
+    if (!sub) return;
+    const idx = sub.topics.findIndex(t => t.id === topicId);
+    if (idx > -1) {
+      const removed = sub.topics.splice(idx, 1)[0];
+      this.renderReviewTopics();
+      app.showToast(`[${removed.title}] 시험 범위가 삭제되었습니다.`, 'info');
+    }
+  },
+
+  deleteTopicFromEditModal() {
+    const subId = document.getElementById('editTopicSubId')?.value;
+    const topicId = document.getElementById('editTopicId')?.value;
+    if (subId && topicId) {
+      this.deleteTopic(subId, topicId);
+      app.closeModal('editReviewTopicModal');
+    }
   },
 
   updateReview(subId, topicId, delta) {
