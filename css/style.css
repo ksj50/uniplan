@@ -614,6 +614,40 @@ body.light-theme .moon-icon { display: block; }
 .exam-status-info { display: flex; flex-direction: column; gap: 0.5rem; }
 .info-pill { font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; background: rgba(0, 0, 0, 0.2); padding: 0.4rem 0.8rem; border-radius: 20px; }
 
+/* Exam Calendar Badges & View Toggle */
+.compact-exam-calendar .calendar-day-cell {
+  min-height: 72px;
+}
+.exam-cal-badge {
+  font-size: 0.68rem;
+  padding: 0.18rem 0.35rem;
+  border-radius: 4px;
+  margin-top: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.exam-cal-badge:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.25);
+}
+.exam-cal-badge.type-confirmed {
+  background: rgba(99, 102, 241, 0.35);
+  color: #c7d2fe;
+  border-left: 3px solid #6366f1;
+}
+.exam-cal-badge.type-estimated {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fde68a;
+  border-left: 3px solid #f59e0b;
+}
+
 /* N-th Review Checklist Card & Pill Styles */
 .review-topic-card {
   background: rgba(255, 255, 255, 0.03);

@@ -26,7 +26,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=20260819_11">
+  <link rel="stylesheet" href="css/style.css?v=20260819_12">
 </head>
 <body class="dark-theme">
   <div id="app" class="app-layout">
@@ -399,13 +399,63 @@
           </div>
 
           <div class="grid-2col">
-            <!-- Left: Exam List & Countdown Cards -->
+            <!-- Left: Exam List & Countdown Cards / Calendar View -->
             <div class="glass-card">
-              <div class="card-header">
-                <h3><i data-lucide="book-open"></i> 과목별 시험 일정 & countdown</h3>
+              <div class="card-header" style="flex-wrap:wrap; gap:0.6rem; justify-content:space-between; align-items:center;">
+                <div>
+                  <h3><i data-lucide="book-open"></i> 과목별 시험 일정 & countdown</h3>
+                  <p class="text-xs text-muted" style="margin-top:0.2rem;">달력에서 월별 시험 일정을 한눈에 확인하거나 상세 카드로 전환할 수 있습니다.</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                  <!-- View Mode Switcher Toggle (Calendar is Default) -->
+                  <div class="view-mode-toggle" style="display:flex; background:rgba(0,0,0,0.3); padding:3px; border-radius:20px; border:1px solid var(--border-color);">
+                    <button type="button" id="btnExamViewCalendar" class="btn btn-xs btn-primary active" onclick="examModule.setExamViewMode('calendar')" style="border-radius:16px; font-weight:700; padding:0.25rem 0.75rem;">
+                      <i data-lucide="calendar"></i> 달력 보기
+                    </button>
+                    <button type="button" id="btnExamViewList" class="btn btn-xs btn-outline" onclick="examModule.setExamViewMode('list')" style="border-radius:16px; font-weight:700; padding:0.25rem 0.75rem; border:none;">
+                      <i data-lucide="list"></i> 상세 목록
+                    </button>
+                  </div>
+                  <button type="button" class="btn btn-xs btn-outline" onclick="app.openModal('addExamModal')">
+                    <i data-lucide="plus"></i> 일정 추가
+                  </button>
+                </div>
               </div>
-              <div id="examSubjectList" class="exam-subject-list">
-                <!-- Subject Cards Injected -->
+
+              <!-- View 1: Compact Monthly Exam Calendar View (Default) -->
+              <div id="examCalendarViewContainer" class="exam-view-mode-content">
+                <!-- Calendar Month Nav Bar -->
+                <div class="calendar-nav-bar mb-2" style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.25); padding:0.5rem 0.8rem; border-radius:var(--radius-md); border:1px solid var(--border-color);">
+                  <div class="calendar-nav-left" style="display:flex; align-items:center; gap:0.4rem;">
+                    <button type="button" class="calendar-nav-btn" onclick="examModule.changeExamCalendarMonth(-1)"><i data-lucide="chevron-left"></i> 이전달</button>
+                    <span id="examCalendarMonthYear" class="calendar-nav-title" style="font-size:1.05rem; font-weight:800;">2026년 8월</span>
+                    <button type="button" class="calendar-nav-btn" onclick="examModule.changeExamCalendarMonth(1)">다음달 <i data-lucide="chevron-right"></i></button>
+                  </div>
+                  <button type="button" class="calendar-nav-btn" onclick="examModule.goToTodayExamCalendar()"><i data-lucide="calendar-days"></i> 오늘 (2026.08)</button>
+                </div>
+
+                <!-- Monthly Calendar Grid -->
+                <div class="team-project-calendar compact-exam-calendar">
+                  <div class="calendar-grid-header">
+                    <div class="calendar-header-day sun">일</div>
+                    <div class="calendar-header-day">월</div>
+                    <div class="calendar-header-day">화</div>
+                    <div class="calendar-header-day">수</div>
+                    <div class="calendar-header-day">목</div>
+                    <div class="calendar-header-day">금</div>
+                    <div class="calendar-header-day sat">토</div>
+                  </div>
+                  <div id="examCalendarGridBody" class="calendar-grid-body">
+                    <!-- Injected by JS -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- View 2: Detailed List / Cards (From Screenshot) -->
+              <div id="examListViewContainer" class="exam-view-mode-content hidden">
+                <div id="examSubjectList" class="exam-subject-list">
+                  <!-- Subject Cards Injected -->
+                </div>
               </div>
             </div>
 
@@ -1817,13 +1867,13 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <!-- Core Scripts -->
-  <script src="js/modules/graduation.js?v=20260819_11"></script>
-  <script src="js/modules/semester.js?v=20260819_11"></script>
-  <script src="js/modules/exam.js?v=20260819_11"></script>
-  <script src="js/modules/projects.js?v=20260819_11"></script>
-  <script src="js/modules/admin.js?v=20260819_11"></script>
-  <script src="js/modules/studymode.js?v=20260819_11"></script>
-  <script src="js/app.js?v=20260819_11"></script>
+  <script src="js/modules/graduation.js?v=20260819_12"></script>
+  <script src="js/modules/semester.js?v=20260819_12"></script>
+  <script src="js/modules/exam.js?v=20260819_12"></script>
+  <script src="js/modules/projects.js?v=20260819_12"></script>
+  <script src="js/modules/admin.js?v=20260819_12"></script>
+  <script src="js/modules/studymode.js?v=20260819_12"></script>
+  <script src="js/app.js?v=20260819_12"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {

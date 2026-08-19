@@ -254,6 +254,7 @@ const app = {
 
     if (viewId === 'exam' && window.examModule) {
       examModule.populateSubjectSelect();
+      examModule.renderExamCalendar();
       examModule.renderReviewTopics();
       examModule.renderSubjectList();
     }

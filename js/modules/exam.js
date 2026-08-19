@@ -48,10 +48,33 @@ const examModule = {
     }
   ],
 
+  currentViewMode: 'calendar',
+  calendarYear: 2026,
+  calendarMonth: 7, // August (0-indexed)
+
+  koreanHolidays: {
+    '2026-01-01': { name: '신정', isRed: true },
+    '2026-02-16': { name: '설날연휴', isRed: true },
+    '2026-02-17': { name: '설날', isRed: true },
+    '2026-02-18': { name: '설날연휴', isRed: true },
+    '2026-03-01': { name: '3·1절', isRed: true },
+    '2026-05-05': { name: '어린이날', isRed: true },
+    '2026-05-24': { name: '부처님오신날', isRed: true },
+    '2026-06-06': { name: '현충일', isRed: true },
+    '2026-08-15': { name: '광복절', isRed: true },
+    '2026-09-24': { name: '추석연휴', isRed: true },
+    '2026-09-25': { name: '추석', isRed: true },
+    '2026-09-26': { name: '추석연휴', isRed: true },
+    '2026-10-03': { name: '개천절', isRed: true },
+    '2026-10-09': { name: '한글날', isRed: true },
+    '2026-12-25': { name: '크리스마스', isRed: true }
+  },
+
   uploadedPhotos: [],
 
   init() {
     this.renderFirstExamHero();
+    this.renderExamCalendar();
     this.renderSubjectList();
     this.populateSubjectSelect();
     this.renderReviewTopics();
@@ -113,6 +136,7 @@ const examModule = {
     });
 
     this.renderFirstExamHero();
+    this.renderExamCalendar();
     this.renderSubjectList();
     this.populateSubjectSelect();
     app.closeModal('addExamModal');
@@ -201,7 +225,175 @@ const examModule = {
       `;
     }).join('');
 
+  setExamViewMode(mode) {
+    this.currentViewMode = mode;
+    const btnCal = document.getElementById('btnExamViewCalendar');
+    const btnList = document.getElementById('btnExamViewList');
+    const calContainer = document.getElementById('examCalendarViewContainer');
+    const listContainer = document.getElementById('examListViewContainer');
+
+    if (btnCal) {
+      btnCal.className = mode === 'calendar' ? 'btn btn-xs btn-primary active' : 'btn btn-xs btn-outline';
+      btnCal.style.border = mode === 'calendar' ? '' : 'none';
+    }
+    if (btnList) {
+      btnList.className = mode === 'list' ? 'btn btn-xs btn-primary active' : 'btn btn-xs btn-outline';
+      btnList.style.border = mode === 'list' ? '' : 'none';
+    }
+
+    if (calContainer) calContainer.classList.toggle('hidden', mode !== 'calendar');
+    if (listContainer) listContainer.classList.toggle('hidden', mode !== 'list');
+
+    if (mode === 'calendar') {
+      this.renderExamCalendar();
+    } else {
+      this.renderSubjectList();
+    }
     if (window.lucide) lucide.createIcons();
+  },
+
+  changeExamCalendarMonth(delta) {
+    this.calendarMonth += delta;
+    if (this.calendarMonth < 0) {
+      this.calendarMonth = 11;
+      this.calendarYear--;
+    } else if (this.calendarMonth > 11) {
+      this.calendarMonth = 0;
+      this.calendarYear++;
+    }
+    this.renderExamCalendar();
+  },
+
+  goToTodayExamCalendar() {
+    this.calendarYear = 2026;
+    this.calendarMonth = 7; // August
+    this.renderExamCalendar();
+  },
+
+  renderExamCalendar() {
+    const gridBody = document.getElementById('examCalendarGridBody');
+    const titleEl = document.getElementById('examCalendarMonthYear');
+    if (!gridBody) return;
+
+    const year = this.calendarYear;
+    const month = this.calendarMonth; // 0-indexed
+
+    if (titleEl) {
+      titleEl.innerText = `${year}년 ${month + 1}월`;
+    }
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0=Sun, 1=Mon...
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const prevLastDate = new Date(year, month, 0).getDate();
+
+    let html = '';
+
+    // 1. Previous Month Spillover Days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const prevDay = prevLastDate - i;
+      const prevDateObj = new Date(year, month - 1, prevDay);
+      const prevDayOfWeek = prevDateObj.getDay();
+      const numClass = prevDayOfWeek === 0 ? 'sun' : prevDayOfWeek === 6 ? 'sat' : '';
+      const dateKey = `${year}-${String(month).padStart(2, '0')}-${String(prevDay).padStart(2, '0')}`;
+      const holiday = this.koreanHolidays[dateKey];
+
+      html += `
+        <div class="calendar-day-cell other-month">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${numClass}">${prevDay}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    // 2. Current Month Days
+    for (let day = 1; day <= lastDate; day++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const currDateObj = new Date(year, month, day);
+      const dayOfWeek = currDateObj.getDay();
+      const numClass = dayOfWeek === 0 ? 'sun' : dayOfWeek === 6 ? 'sat' : '';
+      const holiday = this.koreanHolidays[dateKey];
+
+      // Simulated Today highlight (2026-08-19)
+      const isToday = (year === 2026 && month === 7 && day === 19);
+
+      // Find exams on this day
+      const dayExams = this.subjects.filter(s => {
+        if (!s.examDate) return false;
+        return s.examDate.startsWith(dateKey);
+      });
+
+      let examsHtml = dayExams.map(s => {
+        const timeStr = s.examDate.split(' ')[1] || '';
+        const isConfirmed = s.type === '확정 일정';
+        const typeClass = isConfirmed ? 'type-confirmed' : 'type-estimated';
+        const statusLabel = isConfirmed ? '확정' : '예상';
+
+        return `
+          <div class="exam-cal-badge ${typeClass}" 
+               title="${s.name} (${s.type}) - ${s.examDate}\n시험 범위: ${s.scope}"
+               onclick="examModule.viewExamDetail('${s.id}')">
+            <span>⏰ ${timeStr}</span>
+            <span style="font-weight:700;">${s.name}</span>
+            <span style="font-size:0.6rem; opacity:0.85;">(${statusLabel})</span>
+          </div>
+        `;
+      }).join('');
+
+      html += `
+        <div class="calendar-day-cell ${isToday ? 'today' : ''}" 
+             onclick="if(event.target === this) examModule.openAddExamForDate('${dateKey}')">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${numClass}">${day}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
+          </div>
+          <div class="calendar-events-wrap">
+            ${examsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Next Month Spillover Days
+    const totalCellsFilled = firstDayIndex + lastDate;
+    const remainingCells = (7 - (totalCellsFilled % 7)) % 7;
+    for (let nextDay = 1; nextDay <= remainingCells; nextDay++) {
+      const nextDateObj = new Date(year, month + 1, nextDay);
+      const nextDayOfWeek = nextDateObj.getDay();
+      const numClass = nextDayOfWeek === 0 ? 'sun' : nextDayOfWeek === 6 ? 'sat' : '';
+      const dateKey = `${year}-${String(month + 2).padStart(2, '0')}-${String(nextDay).padStart(2, '0')}`;
+      const holiday = this.koreanHolidays[dateKey];
+
+      html += `
+        <div class="calendar-day-cell other-month">
+          <div class="calendar-cell-top">
+            <span class="calendar-day-num ${numClass}">${nextDay}</span>
+            ${holiday ? `<span class="calendar-holiday-label ${holiday.isRed ? 'red' : ''}">${holiday.name}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    gridBody.innerHTML = html;
+  },
+
+  viewExamDetail(subId) {
+    const sub = this.subjects.find(s => s.id === subId);
+    if (!sub) return;
+
+    const select = document.getElementById('examSubjectSelect');
+    if (select) {
+      select.value = sub.id;
+      this.renderReviewTopics();
+    }
+    app.showToast(`📖 [${sub.name}] 시험일: ${sub.examDate} (${sub.type})\n범위: ${sub.scope}\n우측 회독 체크리스트가 해당 과목으로 전환되었습니다.`, 'info');
+  },
+
+  openAddExamForDate(dateKey) {
+    app.openModal('addExamModal');
+    const dateInput = document.getElementById('examDateInput');
+    if (dateInput) dateInput.value = dateKey;
   },
 
   populateSubjectSelect() {
@@ -486,6 +678,7 @@ const examModule = {
     const sub = this.subjects.find(s => s.id === subId);
     if (sub) {
       sub.type = '확정 일정';
+      this.renderExamCalendar();
       this.renderSubjectList();
       this.renderFirstExamHero();
       app.showToast(`[${sub.name}] 일정이 확정 일정으로 정보가 수정되었습니다!`, 'success');
